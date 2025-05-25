@@ -35,6 +35,7 @@ solvm main.lua
 - Monitoring and resource checking  
 
 ## Installation
+[Release](https://github.com/kleeedolinux/SolVM/releases)
 ```bash
 git clone https://github.com/kleeedolinux/SolVM
 cd SolVM
