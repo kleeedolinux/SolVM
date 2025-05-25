@@ -688,4 +688,82 @@ The crypto module provides the following functions:
 #### Random
 - `crypto.random_bytes(length)`: Generate cryptographically secure random bytes
 
-Note: All encrypted data is returned as Base64-encoded strings for safe transmission and storage. 
+Note: All encrypted data is returned as Base64-encoded strings for safe transmission and storage.
+
+### Dotenv Module
+```lua
+-- Load environment variables from .env file
+dotenv.load(".env")
+
+-- Get environment variable with default value
+local api_key = dotenv.get("API_KEY", "default_key")
+
+-- Set environment variable
+dotenv.set("DEBUG", "true")
+```
+
+### Datetime Module
+```lua
+-- Get current timestamp
+local now = datetime.now()
+
+-- Format timestamp
+local formatted = datetime.format(now, "2006-01-02 15:04:05")
+
+-- Parse time string
+local timestamp = datetime.parse("2024-01-01 12:00:00")
+
+-- Add duration
+local future = datetime.add(now, "24h")
+
+-- Calculate time difference
+local diff = datetime.diff(now, future)
+
+-- Sleep for duration
+datetime.sleep("1s")
+```
+
+### CSV Module
+```lua
+-- Read CSV file
+local data = csv.read("data.csv")
+
+-- Write CSV file
+csv.write("output.csv", data)
+
+-- Parse CSV string
+local parsed = csv.parse("name,age\nJohn,30")
+
+-- Convert table to CSV string
+local csv_str = csv.stringify(data)
+```
+
+### File Transfer Module
+```lua
+-- Download file from URL
+ft.download("https://example.com/file.txt", "local.txt")
+
+-- Upload file to URL
+ft.upload("local.txt", "https://example.com/upload")
+
+-- Copy file
+ft.copy("source.txt", "destination.txt")
+
+-- Move file
+ft.move("old.txt", "new.txt")
+```
+
+### INI Module
+```lua
+-- Read INI file
+local config = ini.read("config.ini")
+
+-- Write INI file
+ini.write("config.ini", config)
+
+-- Parse INI string
+local parsed = ini.parse("[section]\nkey=value")
+
+-- Convert table to INI string
+local ini_str = ini.stringify(config)
+``` 

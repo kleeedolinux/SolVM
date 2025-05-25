@@ -62,6 +62,11 @@ func NewSolVM(timeout time.Duration) *SolVM {
 	modules.RegisterJSONCModule(vm.state)
 	modules.RegisterTextModule(vm.state)
 	modules.RegisterCryptoModule(vm.state)
+	modules.RegisterDotenvModule(vm.state)
+	modules.RegisterDatetimeModule(vm.state)
+	modules.RegisterCSVModule(vm.state)
+	modules.RegisterFTModule(vm.state)
+	modules.RegisterINIModule(vm.state)
 
 	return vm
 }
