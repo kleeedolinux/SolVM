@@ -763,13 +763,18 @@ end
 
 ### Structuring Your Code: Importing Modules
 
-As your SolVM projects grow, organizing code into reusable modules becomes essential. SolVM supports importing both individual Lua files and entire folders as modules using the `import("module_name")` function.
+As your SolVM projects grow, organizing code into reusable modules becomes essential. SolVM supports importing modules in several ways using the `import("module_name")` function:
 
-When you call `import("module_name")`, SolVM looks for either:
+1. Individual Lua files: `module_name.lua`
+2. Module folders: `module_name/`
+3. ZIP archives: `module_name.zip` (local or remote)
+
+When you call `import("module_name")`, SolVM looks for:
 1. A file named `module_name.lua` in the modules directory
 2. A folder named `module_name/` containing multiple Lua files
+3. A ZIP file named `module_name.zip` (local or remote URL)
 
-For individual files, it executes the file and returns the value (typically a table containing functions and data). For folders, it creates a namespace containing all the modules from that folder.
+For individual files, it executes the file and returns the value (typically a table containing functions and data). For folders and ZIP files, it creates a namespace containing all the modules.
 
 **Using Individual Module Imports:**
 ```lua
@@ -801,13 +806,34 @@ local math = utils.math.add(1, 2)
 local arr = utils.array.map({1, 2, 3}, function(x) return x * 2 end)
 ```
 
-**Folder Structure Example:**
+**Using ZIP Imports:**
+```lua
+-- Import from a remote ZIP file
+import("https://example.com/modules.zip")
+
+-- Access modules from the remote ZIP
+local math = modules.math.add(1, 2)
+local str = modules.string.trim("  hello  ")
+
+-- Import from a local ZIP file
+import("local_modules.zip")
+
+-- Access modules from the local ZIP
+local utils = local_modules.utils.format("test")
+```
+
+**Folder Structure Examples:**
 ```
 modules/
   utils/
     string.lua    -- Contains string manipulation functions
     math.lua      -- Contains math operations
     array.lua     -- Contains array utilities
+
+modules.zip
+  ├── math.lua
+  ├── string.lua
+  └── utils.lua
 ```
 
 **Module File Example (math.lua):**

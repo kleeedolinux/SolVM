@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"archive/zip"
 	"context"
 	"fmt"
 	"io"
@@ -75,6 +76,10 @@ func (im *ImportModule) importModule(L *lua.LState) int {
 
 	if strings.HasSuffix(modulePath, "/") {
 		return im.importFolder(L, modulePath)
+	}
+
+	if strings.HasSuffix(modulePath, ".zip") {
+		return im.importFromZip(L, modulePath)
 	}
 
 	code, err := im.loadModuleWithCache(modulePath)
@@ -153,6 +158,99 @@ func (im *ImportModule) importFolder(L *lua.LState, folderPath string) int {
 	}
 
 	return 0
+}
+
+func (im *ImportModule) importFromZip(L *lua.LState, zipPath string) int {
+	var reader io.ReadCloser
+	var err error
+
+	if im.isURL(zipPath) {
+		reader, err = im.downloadZip(zipPath)
+		if err != nil {
+			L.RaiseError("Failed to download ZIP from URL '%s': %v", zipPath, err)
+			return 0
+		}
+		defer reader.Close()
+	} else {
+		file, err := os.Open(zipPath)
+		if err != nil {
+			L.RaiseError("Failed to open ZIP file '%s': %v", zipPath, err)
+			return 0
+		}
+		defer file.Close()
+		reader = file
+	}
+
+	zipReader, err := zip.NewReader(reader.(io.ReaderAt), 0)
+	if err != nil {
+		L.RaiseError("Failed to read ZIP file '%s': %v", zipPath, err)
+		return 0
+	}
+
+	moduleState := L.NewTable()
+	L.SetGlobal(zipPath, moduleState)
+
+	for _, file := range zipReader.File {
+		if !strings.HasSuffix(file.Name, luaExtension) {
+			continue
+		}
+
+		rc, err := file.Open()
+		if err != nil {
+			L.RaiseError("Failed to open file '%s' in ZIP: %v", file.Name, err)
+			continue
+		}
+
+		content, err := io.ReadAll(rc)
+		rc.Close()
+		if err != nil {
+			L.RaiseError("Failed to read file '%s' in ZIP: %v", file.Name, err)
+			continue
+		}
+
+		if err := L.DoString(string(content)); err != nil {
+			L.RaiseError("Failed to execute file '%s' from ZIP: %v", file.Name, err)
+			continue
+		}
+
+		ret := L.Get(-1)
+		L.Pop(1)
+
+		if ret.Type() == lua.LTTable {
+			moduleName := strings.TrimSuffix(filepath.Base(file.Name), luaExtension)
+			subTable := L.NewTable()
+			moduleState.RawSetString(moduleName, subTable)
+			im.copyTableContents(ret.(*lua.LTable), subTable)
+		}
+
+		im.mu.Lock()
+		im.loaded[file.Name] = true
+		im.mu.Unlock()
+	}
+
+	return 0
+}
+
+func (im *ImportModule) downloadZip(url string) (io.ReadCloser, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := im.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch ZIP from URL: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("failed to fetch ZIP: HTTP %d", resp.StatusCode)
+	}
+
+	return resp.Body, nil
 }
 
 func (im *ImportModule) loadModuleWithCache(modulePath string) (string, error) {
