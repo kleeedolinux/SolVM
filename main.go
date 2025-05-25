@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"solvm/vm"
+	"github.com/kleeedolinux/solvm/vm"
 )
 
 func main() {
@@ -26,11 +26,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	
 	isServer := strings.Contains(string(code), "create_server") ||
 		strings.Contains(string(code), "start_server")
 
-	
 	if isServer {
 		*timeout = 0
 	}
