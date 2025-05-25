@@ -3,6 +3,7 @@ package vm
 import (
 	"archive/zip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,7 @@ const (
 	maxModuleSize = 10 << 20
 	luaExtension  = ".lua"
 	modulesDir    = "modules"
+	githubAPI     = "https://api.github.com"
 )
 
 type ModuleCache struct {
@@ -63,7 +65,7 @@ func (im *ImportModule) importModule(L *lua.LState) int {
 	modulePath := L.CheckString(1)
 
 	if modulePath == "" {
-		L.RaiseError("Module path cannot be empty")
+		L.RaiseError("module path cannot be empty")
 		return 0
 	}
 
@@ -82,9 +84,13 @@ func (im *ImportModule) importModule(L *lua.LState) int {
 		return im.importFromZip(L, modulePath)
 	}
 
+	if im.isGitHubURL(modulePath) {
+		return im.importFromGitHub(L, modulePath)
+	}
+
 	code, err := im.loadModuleWithCache(modulePath)
 	if err != nil {
-		L.RaiseError("Failed to import module '%s': %v", modulePath, err)
+		L.RaiseError("failed to import module '%s': %v", modulePath, err)
 		return 0
 	}
 
@@ -92,7 +98,7 @@ func (im *ImportModule) importModule(L *lua.LState) int {
 	L.SetGlobal(modulePath, moduleState)
 
 	if err := L.DoString(code); err != nil {
-		L.RaiseError("Failed to execute module '%s': %v", modulePath, err)
+		L.RaiseError("failed to execute module '%s': %v", modulePath, err)
 		return 0
 	}
 
@@ -110,6 +116,73 @@ func (im *ImportModule) importModule(L *lua.LState) int {
 	return 0
 }
 
+func (im *ImportModule) isGitHubURL(path string) bool {
+	return strings.HasPrefix(path, "github.com/") || strings.HasPrefix(path, "https://github.com/")
+}
+
+func (im *ImportModule) importFromGitHub(L *lua.LState, repoPath string) int {
+	owner, repo, err := im.parseGitHubURL(repoPath)
+	if err != nil {
+		L.RaiseError("invalid github repository url: %v", err)
+		return 0
+	}
+
+	downloadURL, err := im.getGitHubDownloadURL(owner, repo)
+	if err != nil {
+		L.RaiseError("failed to get github download url: %v", err)
+		return 0
+	}
+
+	reader, err := im.downloadZip(downloadURL)
+	if err != nil {
+		L.RaiseError("failed to download repository: %v", err)
+		return 0
+	}
+	defer reader.Close()
+
+	return im.importFromZip(L, reader)
+}
+
+func (im *ImportModule) parseGitHubURL(url string) (owner, repo string, err error) {
+	parts := strings.Split(strings.TrimPrefix(strings.TrimPrefix(url, "https://"), "github.com/"), "/")
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("invalid github url format")
+	}
+	return parts[0], parts[1], nil
+}
+
+func (im *ImportModule) getGitHubDownloadURL(owner, repo string) (string, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", githubAPI, owner, repo)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := im.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch release info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Sprintf("https://github.com/%s/%s/archive/refs/heads/main.zip", owner, repo), nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch release info: HTTP %d", resp.StatusCode)
+	}
+
+	var release struct {
+		ZipballURL string `json:"zipball_url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", fmt.Errorf("failed to parse release info: %w", err)
+	}
+
+	return release.ZipballURL, nil
+}
+
 func (im *ImportModule) importFolder(L *lua.LState, folderPath string) int {
 	if !strings.HasSuffix(folderPath, "/") {
 		folderPath += "/"
@@ -118,7 +191,7 @@ func (im *ImportModule) importFolder(L *lua.LState, folderPath string) int {
 	moduleDir := filepath.Join(modulesDir, folderPath)
 	entries, err := os.ReadDir(moduleDir)
 	if err != nil {
-		L.RaiseError("Failed to read module folder '%s': %v", folderPath, err)
+		L.RaiseError("failed to read module folder '%s': %v", folderPath, err)
 		return 0
 	}
 
@@ -133,12 +206,12 @@ func (im *ImportModule) importFolder(L *lua.LState, folderPath string) int {
 		filePath := filepath.Join(folderPath, entry.Name())
 		code, err := im.loadModuleWithCache(filePath)
 		if err != nil {
-			L.RaiseError("Failed to import module '%s': %v", filePath, err)
+			L.RaiseError("failed to import module '%s': %v", filePath, err)
 			continue
 		}
 
 		if err := L.DoString(code); err != nil {
-			L.RaiseError("Failed to execute module '%s': %v", filePath, err)
+			L.RaiseError("failed to execute module '%s': %v", filePath, err)
 			continue
 		}
 
@@ -160,35 +233,44 @@ func (im *ImportModule) importFolder(L *lua.LState, folderPath string) int {
 	return 0
 }
 
-func (im *ImportModule) importFromZip(L *lua.LState, zipPath string) int {
+func (im *ImportModule) importFromZip(L *lua.LState, pathOrReader interface{}) int {
 	var reader io.ReadCloser
 	var err error
 
-	if im.isURL(zipPath) {
-		reader, err = im.downloadZip(zipPath)
-		if err != nil {
-			L.RaiseError("Failed to download ZIP from URL '%s': %v", zipPath, err)
-			return 0
+	switch v := pathOrReader.(type) {
+	case string:
+		if im.isURL(v) {
+			reader, err = im.downloadZip(v)
+			if err != nil {
+				L.RaiseError("failed to download zip from url '%s': %v", v, err)
+				return 0
+			}
+			defer reader.Close()
+		} else {
+			file, err := os.Open(v)
+			if err != nil {
+				L.RaiseError("failed to open zip file '%s': %v", v, err)
+				return 0
+			}
+			defer file.Close()
+			reader = file
 		}
+	case io.ReadCloser:
+		reader = v
 		defer reader.Close()
-	} else {
-		file, err := os.Open(zipPath)
-		if err != nil {
-			L.RaiseError("Failed to open ZIP file '%s': %v", zipPath, err)
-			return 0
-		}
-		defer file.Close()
-		reader = file
+	default:
+		L.RaiseError("invalid argument type for importFromZip")
+		return 0
 	}
 
 	zipReader, err := zip.NewReader(reader.(io.ReaderAt), 0)
 	if err != nil {
-		L.RaiseError("Failed to read ZIP file '%s': %v", zipPath, err)
+		L.RaiseError("failed to read zip file: %v", err)
 		return 0
 	}
 
 	moduleState := L.NewTable()
-	L.SetGlobal(zipPath, moduleState)
+	L.SetGlobal("github_module", moduleState)
 
 	for _, file := range zipReader.File {
 		if !strings.HasSuffix(file.Name, luaExtension) {
@@ -197,19 +279,19 @@ func (im *ImportModule) importFromZip(L *lua.LState, zipPath string) int {
 
 		rc, err := file.Open()
 		if err != nil {
-			L.RaiseError("Failed to open file '%s' in ZIP: %v", file.Name, err)
+			L.RaiseError("failed to open file '%s' in zip: %v", file.Name, err)
 			continue
 		}
 
 		content, err := io.ReadAll(rc)
 		rc.Close()
 		if err != nil {
-			L.RaiseError("Failed to read file '%s' in ZIP: %v", file.Name, err)
+			L.RaiseError("failed to read file '%s' in zip: %v", file.Name, err)
 			continue
 		}
 
 		if err := L.DoString(string(content)); err != nil {
-			L.RaiseError("Failed to execute file '%s' from ZIP: %v", file.Name, err)
+			L.RaiseError("failed to execute file '%s' from zip: %v", file.Name, err)
 			continue
 		}
 
