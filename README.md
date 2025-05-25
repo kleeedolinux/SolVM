@@ -17,7 +17,7 @@ So, SolVM. Its a Lua runtime, right? But built in Go, kinda from gopher-lua. The
 ## Installin is easy:
 
 ```bash
-go get github.com/solvm
+go get solvm
 ```
 (You need Go for this, obvs)
 
