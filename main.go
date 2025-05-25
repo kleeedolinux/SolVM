@@ -39,7 +39,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Println("SolVM version 1.0.0")
+		fmt.Println("SolVM version 1.1.0")
 		return
 	}
 
@@ -78,7 +78,7 @@ func main() {
 		Timeout:       *timeout,
 		Debug:         *debug,
 		Trace:         *trace,
-		MemoryLimit:   *memoryLimit,
+		MemoryLimit:   int64(*memoryLimit) * 1024 * 1024,
 		MaxGoroutines: *maxGoroutines,
 		WorkingDir:    filepath.Dir(absPath),
 	}

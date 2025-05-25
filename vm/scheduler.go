@@ -17,6 +17,7 @@ type SchedulerModule struct {
 	cron      *cron.Cron
 	mu        sync.RWMutex
 	nextID    int
+	pool      *sync.Pool
 }
 
 func NewSchedulerModule(vm *SolVM) *SchedulerModule {
@@ -27,6 +28,11 @@ func NewSchedulerModule(vm *SolVM) *SchedulerModule {
 		crons:     make(map[int]cron.EntryID),
 		cron:      cron.New(cron.WithSeconds()),
 		nextID:    1,
+		pool: &sync.Pool{
+			New: func() interface{} {
+				return lua.NewState()
+			},
+		},
 	}
 }
 
@@ -51,8 +57,8 @@ func (sm *SchedulerModule) setInterval(L *lua.LState) int {
 
 	go func() {
 		for range ticker.C {
-			L2 := lua.NewState()
-			defer L2.Close()
+			L2 := sm.pool.Get().(*lua.LState)
+			defer sm.pool.Put(L2)
 
 			fn2 := L2.NewFunctionFromProto(fn.Proto)
 			L2.Push(fn2)
@@ -80,8 +86,8 @@ func (sm *SchedulerModule) setTimeout(L *lua.LState) int {
 
 	go func() {
 		<-timer.C
-		L2 := lua.NewState()
-		defer L2.Close()
+		L2 := sm.pool.Get().(*lua.LState)
+		defer sm.pool.Put(L2)
 
 		fn2 := L2.NewFunctionFromProto(fn.Proto)
 		L2.Push(fn2)
@@ -108,8 +114,8 @@ func (sm *SchedulerModule) setCron(L *lua.LState) int {
 	sm.mu.Unlock()
 
 	entryID, err := sm.cron.AddFunc(schedule, func() {
-		L2 := lua.NewState()
-		defer L2.Close()
+		L2 := sm.pool.Get().(*lua.LState)
+		defer sm.pool.Put(L2)
 
 		fn2 := L2.NewFunctionFromProto(fn.Proto)
 		L2.Push(fn2)
@@ -156,4 +162,24 @@ func (sm *SchedulerModule) ClearCron(id int) {
 		sm.cron.Remove(entryID)
 		delete(sm.crons, id)
 	}
+}
+
+func (sm *SchedulerModule) Close() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	for _, ticker := range sm.intervals {
+		ticker.Stop()
+	}
+	for _, timer := range sm.timeouts {
+		timer.Stop()
+	}
+	for _, entryID := range sm.crons {
+		sm.cron.Remove(entryID)
+	}
+
+	sm.cron.Stop()
+	sm.intervals = nil
+	sm.timeouts = nil
+	sm.crons = nil
 }

@@ -2,6 +2,8 @@ package vm
 
 import (
 	"context"
+	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -18,7 +20,7 @@ type Config struct {
 	Timeout       time.Duration
 	Debug         bool
 	Trace         bool
-	MemoryLimit   int
+	MemoryLimit   int64
 	MaxGoroutines int
 	WorkingDir    string
 }
@@ -39,13 +41,14 @@ type SolVM struct {
 	schedMod      *SchedulerModule
 	netMod        *NetworkModule
 	debugMod      *DebugModule
-	L             *lua.LState
 	debug         bool
 	trace         bool
-	memoryLimit   int
+	memoryLimit   int64
 	maxGoroutines int
 	workingDir    string
 	modules       map[string]Module
+	moduleMu      sync.RWMutex
+	startMem      runtime.MemStats
 }
 
 func NewSolVM(config Config) *SolVM {
@@ -65,7 +68,6 @@ func NewSolVM(config Config) *SolVM {
 		ctx:           ctx,
 		cancel:        cancel,
 		errorChan:     make(chan error, 1),
-		L:             L,
 		debug:         config.Debug,
 		trace:         config.Trace,
 		memoryLimit:   config.MemoryLimit,
@@ -73,6 +75,15 @@ func NewSolVM(config Config) *SolVM {
 		workingDir:    config.WorkingDir,
 		modules:       make(map[string]Module),
 	}
+
+	runtime.ReadMemStats(&vm.startMem)
+	vm.initializeModules()
+	vm.registerBuiltinModules()
+
+	return vm
+}
+
+func (vm *SolVM) initializeModules() {
 	vm.importMod = NewImportModule(vm)
 	vm.concMod = NewConcurrencyModule(vm)
 	vm.monitor = NewMonitorModule(vm)
@@ -82,7 +93,9 @@ func NewSolVM(config Config) *SolVM {
 	vm.schedMod = NewSchedulerModule(vm)
 	vm.netMod = NewNetworkModule(vm)
 	vm.debugMod = NewDebugModule(vm)
+}
 
+func (vm *SolVM) registerBuiltinModules() {
 	modules.RegisterUUIDModule(vm.state)
 	modules.RegisterRandomModule(vm.state)
 	modules.RegisterTOMLModule(vm.state)
@@ -96,13 +109,17 @@ func NewSolVM(config Config) *SolVM {
 	modules.RegisterFTModule(vm.state)
 	modules.RegisterINIModule(vm.state)
 	modules.RegisterTARModule(vm.state)
-
-	return vm
 }
 
 func (vm *SolVM) LoadString(code string) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
+
+	if vm.memoryLimit > 0 {
+		if err := vm.checkMemoryUsage(); err != nil {
+			return err
+		}
+	}
 
 	err := vm.state.DoString(code)
 	if err != nil {
@@ -112,12 +129,25 @@ func (vm *SolVM) LoadString(code string) error {
 }
 
 func (vm *SolVM) ExecuteAsync(code string) error {
+	if vm.maxGoroutines > 0 {
+		if runtime.NumGoroutine() >= vm.maxGoroutines {
+			return fmt.Errorf("maximum number of goroutines reached")
+		}
+	}
+
 	go func() {
 		if err := vm.LoadString(code); err != nil {
-			vm.errorChan <- err
+			select {
+			case vm.errorChan <- err:
+			default:
+				vm.monitor.handleError(fmt.Errorf("error channel full: %v", err))
+			}
 			return
 		}
-		vm.errorChan <- nil
+		select {
+		case vm.errorChan <- nil:
+		default:
+		}
 	}()
 
 	select {
@@ -137,6 +167,31 @@ func (vm *SolVM) RegisterFunction(name string, fn lua.LGFunction) {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
 	vm.state.SetGlobal(name, vm.state.NewFunction(fn))
+}
+
+func (vm *SolVM) RegisterModule(name string, module Module) {
+	vm.moduleMu.Lock()
+	defer vm.moduleMu.Unlock()
+	vm.modules[name] = module
+	module.Register()
+}
+
+func (vm *SolVM) GetModule(name string) (Module, bool) {
+	vm.moduleMu.RLock()
+	defer vm.moduleMu.RUnlock()
+	module, exists := vm.modules[name]
+	return module, exists
+}
+
+func (vm *SolVM) checkMemoryUsage() error {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	allocated := m.Alloc - vm.startMem.Alloc
+	if allocated > uint64(vm.memoryLimit) {
+		return fmt.Errorf("memory limit exceeded: %d > %d", allocated, vm.memoryLimit)
+	}
+	return nil
 }
 
 func (vm *SolVM) Close() {
