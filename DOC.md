@@ -763,26 +763,18 @@ end
 
 ### Structuring Your Code: Importing Modules
 
-As your SolVM projects grow, organizing code into reusable modules becomes essential. SolVM supports importing other Lua files as modules using the `import("module_name")` function.
+As your SolVM projects grow, organizing code into reusable modules becomes essential. SolVM supports importing both individual Lua files and entire folders as modules using the `import("module_name")` function.
 
-When you call `import("module_name")`, SolVM looks for a file named `module_name.lua` (or a similar convention, depending on its search path configuration). It executes this file, and the value returned by the module file (typically a table containing functions and data) is then returned by the `import` call. This allows you to encapsulate related functionalities into separate files and use them across different parts of your application.
+When you call `import("module_name")`, SolVM looks for either:
+1. A file named `module_name.lua` in the modules directory
+2. A folder named `module_name/` containing multiple Lua files
 
-**Using an Imported Module:**
+For individual files, it executes the file and returns the value (typically a table containing functions and data). For folders, it creates a namespace containing all the modules from that folder.
+
+**Using Individual Module Imports:**
 ```lua
--- Assume there is a file named 'math_operations.lua' with content like:
---
---   -- math_operations.lua
---   local operations = {}
---   function operations.sum(a, b) return a + b end
---   function operations.product(a, b) return a * b end
---   return operations
---
--- (See the 'math_utils.lua' example provided later for a concrete module)
-
--- Import the 'math_operations' module
--- For this to work, 'math_operations.lua' must exist where SolVM can find it.
--- Let's use 'math_utils' as per the provided example files.
-local math_lib = import("math_utils") -- Assumes math_utils.lua exists
+-- Import a single module
+local math_lib = import("math_utils")
 
 if not math_lib then
     print("Error: Could not import 'math_utils' module.")
@@ -796,23 +788,57 @@ local num2 = 7
 
 local sum_result = math_lib.add(num1, num2)
 print(string.format("%d + %d = %d", num1, num2, sum_result))
+```
 
-local product_result = math_lib.multiply(num1, num2)
-print(string.format("%d * %d = %d", num1, num2, product_result))
+**Using Folder Imports:**
+```lua
+-- Import an entire folder of modules
+import("utils/")
 
--- Example of using JSON with an imported module
+-- Access modules through the folder namespace
+local str = utils.string.trim("  hello  ")
+local math = utils.math.add(1, 2)
+local arr = utils.array.map({1, 2, 3}, function(x) return x * 2 end)
+```
+
+**Folder Structure Example:**
+```
+modules/
+  utils/
+    string.lua    -- Contains string manipulation functions
+    math.lua      -- Contains math operations
+    array.lua     -- Contains array utilities
+```
+
+**Module File Example (math.lua):**
+```lua
+local math = {}
+
+function math.add(a, b)
+    return a + b
+end
+
+function math.multiply(a, b)
+    return a * b
+end
+
+return math
+```
+
+**Using JSON with Imported Modules:**
+```lua
 local calculation_task = {
     type = "subtraction",
     operand1 = 50,
     operand2 = 18
 }
 
-local task_json = json_encode(calculation_task) -- Assuming json_encode
+local task_json = json_encode(calculation_task)
 print("Calculation task (JSON):", task_json)
 
-local decoded_task = json_decode(task_json) -- Assuming json_decode
-if decoded_task and decoded_task.type == "subtraction" and math_lib.subtract then
-    local subtraction_result = math_lib.subtract(decoded_task.operand1, decoded_task.operand2)
+local decoded_task = json_decode(task_json)
+if decoded_task and decoded_task.type == "subtraction" then
+    local subtraction_result = utils.math.subtract(decoded_task.operand1, decoded_task.operand2)
     print(string.format("%d - %d = %d", decoded_task.operand1, decoded_task.operand2, subtraction_result))
 else
     print("Could not perform subtraction from decoded task.")
@@ -1139,7 +1165,7 @@ print("\nMoving 'copied_file.txt' to 'archive/moved_file.txt'...")
 -- this part is more conceptual. Actual usage would depend on `write_file` or `os.execute`
 -- to set up the scenario if files aren't downloaded.
 ```
-*Self-correction: The `ft` example needs `os.execute` or `write_file` to create dummy files for `copy` and `move` to work if `download` is not used or fails. The original snippet did not show this setup.*
+*Self-correction: The `ft` example needs `os.execute` or `write_file` to create dummy files for `copy` and `move` to work if `download` is not used or fails.*
 
 ### Creating and Managing Archives (`tar`)
 
