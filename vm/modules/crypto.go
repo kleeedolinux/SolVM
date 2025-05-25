@@ -25,7 +25,6 @@ func RegisterCryptoModule(L *lua.LState) {
 	cryptoModule := L.NewTable()
 	L.SetGlobal("crypto", cryptoModule)
 
-	
 	L.SetField(cryptoModule, "md5", L.NewFunction(func(L *lua.LState) int {
 		data := L.CheckString(1)
 		hash := md5.Sum([]byte(data))
@@ -54,7 +53,6 @@ func RegisterCryptoModule(L *lua.LState) {
 		return 1
 	}))
 
-	
 	L.SetField(cryptoModule, "base64_encode", L.NewFunction(func(L *lua.LState) int {
 		data := L.CheckString(1)
 		encoded := base64.StdEncoding.EncodeToString([]byte(data))
@@ -73,7 +71,6 @@ func RegisterCryptoModule(L *lua.LState) {
 		return 1
 	}))
 
-	
 	L.SetField(cryptoModule, "aes_encrypt", L.NewFunction(func(L *lua.LState) int {
 		plaintext := L.CheckString(1)
 		key := L.CheckString(2)
@@ -125,7 +122,6 @@ func RegisterCryptoModule(L *lua.LState) {
 		return 1
 	}))
 
-	
 	L.SetField(cryptoModule, "des_encrypt", L.NewFunction(func(L *lua.LState) int {
 		plaintext := L.CheckString(1)
 		key := L.CheckString(2)
@@ -177,7 +173,6 @@ func RegisterCryptoModule(L *lua.LState) {
 		return 1
 	}))
 
-	
 	L.SetField(cryptoModule, "rc4_encrypt", L.NewFunction(func(L *lua.LState) int {
 		plaintext := L.CheckString(1)
 		key := L.CheckString(2)
@@ -218,7 +213,6 @@ func RegisterCryptoModule(L *lua.LState) {
 		return 1
 	}))
 
-	
 	L.SetField(cryptoModule, "rsa_generate", L.NewFunction(func(L *lua.LState) int {
 		bits := L.OptInt(1, 2048)
 		privateKey, err := rsa.GenerateKey(rand.Reader, bits)
@@ -246,7 +240,6 @@ func RegisterCryptoModule(L *lua.LState) {
 		return 1
 	}))
 
-	
 	L.SetField(cryptoModule, "random_bytes", L.NewFunction(func(L *lua.LState) int {
 		length := L.CheckInt(1)
 		if length <= 0 {
@@ -266,7 +259,6 @@ func RegisterCryptoModule(L *lua.LState) {
 	}))
 }
 
-
 func pkcs7Padding(data []byte, blockSize int) []byte {
 	padding := blockSize - len(data)%blockSize
 	padtext := make([]byte, len(data)+padding)
@@ -276,7 +268,6 @@ func pkcs7Padding(data []byte, blockSize int) []byte {
 	}
 	return padtext
 }
-
 
 func pkcs7Unpadding(data []byte) ([]byte, error) {
 	length := len(data)
