@@ -37,22 +37,36 @@ func (cm *ConcurrencyModule) goFunc(L *lua.LState) int {
 	go func() {
 		defer cm.wg.Done()
 
-		
 		L2 := lua.NewState()
 		defer L2.Close()
 
-		
 		fn2 := L2.NewFunctionFromProto(fn.Proto)
 		L2.Push(fn2)
 
-		
 		L2.SetGlobal("print", L.GetGlobal("print"))
 		L2.SetGlobal("sleep", L.GetGlobal("sleep"))
+		L2.SetGlobal("json_encode", L.GetGlobal("json_encode"))
+		L2.SetGlobal("json_decode", L.GetGlobal("json_decode"))
 		L2.SetGlobal("send", L.GetGlobal("send"))
 		L2.SetGlobal("receive", L.GetGlobal("receive"))
 		L2.SetGlobal("select", L.GetGlobal("select"))
+		L2.SetGlobal("wait", L.GetGlobal("wait"))
+		L2.SetGlobal("import", L.GetGlobal("import"))
+		L2.SetGlobal("on_error", L.GetGlobal("on_error"))
+		L2.SetGlobal("check_memory", L.GetGlobal("check_memory"))
+		L2.SetGlobal("get_goroutines", L.GetGlobal("get_goroutines"))
 
-		
+		modules := []string{
+			"uuid", "random", "toml", "yaml", "jsonc", "text", "crypto",
+			"dotenv", "datetime", "csv", "ft", "ini", "tar",
+		}
+
+		for _, module := range modules {
+			if mod := L.GetGlobal(module); mod.Type() != lua.LTNil {
+				L2.SetGlobal(module, mod)
+			}
+		}
+
 		if err := L2.PCall(0, 0, nil); err != nil {
 			L.RaiseError("Goroutine error: %v", err)
 		}
