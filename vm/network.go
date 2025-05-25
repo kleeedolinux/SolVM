@@ -61,12 +61,10 @@ func (nm *NetworkModule) tcpListen(L *lua.LState) int {
 			nm.tcpConns[connID] = conn
 			nm.mu.Unlock()
 
-			
 			connTable := L.NewTable()
 			connTable.RawSetString("id", lua.LNumber(connID))
 			connTable.RawSetString("remote_addr", lua.LString(conn.RemoteAddr().String()))
 
-			
 			connTable.RawSetString("read", L.NewFunction(func(L *lua.LState) int {
 				buffer := make([]byte, 1024)
 				n, err := conn.Read(buffer)
@@ -79,7 +77,6 @@ func (nm *NetworkModule) tcpListen(L *lua.LState) int {
 				return 1
 			}))
 
-			
 			connTable.RawSetString("write", L.NewFunction(func(L *lua.LState) int {
 				data := L.CheckString(1)
 				_, err := conn.Write([]byte(data))
@@ -92,7 +89,6 @@ func (nm *NetworkModule) tcpListen(L *lua.LState) int {
 				return 1
 			}))
 
-			
 			connTable.RawSetString("close", L.NewFunction(func(L *lua.LState) int {
 				conn.Close()
 				nm.mu.Lock()
@@ -125,12 +121,10 @@ func (nm *NetworkModule) tcpConnect(L *lua.LState) int {
 	nm.tcpConns[id] = conn
 	nm.mu.Unlock()
 
-	
 	connTable := L.NewTable()
 	connTable.RawSetString("id", lua.LNumber(id))
 	connTable.RawSetString("remote_addr", lua.LString(conn.RemoteAddr().String()))
 
-	
 	connTable.RawSetString("read", L.NewFunction(func(L *lua.LState) int {
 		buffer := make([]byte, 1024)
 		n, err := conn.Read(buffer)
@@ -143,7 +137,6 @@ func (nm *NetworkModule) tcpConnect(L *lua.LState) int {
 		return 1
 	}))
 
-	
 	connTable.RawSetString("write", L.NewFunction(func(L *lua.LState) int {
 		data := L.CheckString(1)
 		_, err := conn.Write([]byte(data))
@@ -156,7 +149,6 @@ func (nm *NetworkModule) tcpConnect(L *lua.LState) int {
 		return 1
 	}))
 
-	
 	connTable.RawSetString("close", L.NewFunction(func(L *lua.LState) int {
 		conn.Close()
 		nm.mu.Lock()
@@ -210,11 +202,9 @@ func (nm *NetworkModule) udpRecvFrom(L *lua.LState) int {
 	nm.udpConns[id] = conn
 	nm.mu.Unlock()
 
-	
 	connTable := L.NewTable()
 	connTable.RawSetString("id", lua.LNumber(id))
 
-	
 	connTable.RawSetString("receive", L.NewFunction(func(L *lua.LState) int {
 		buffer := make([]byte, 1024)
 		n, remoteAddr, err := conn.ReadFromUDP(buffer)
@@ -233,7 +223,6 @@ func (nm *NetworkModule) udpRecvFrom(L *lua.LState) int {
 		return 1
 	}))
 
-	
 	connTable.RawSetString("close", L.NewFunction(func(L *lua.LState) int {
 		conn.Close()
 		nm.mu.Lock()

@@ -69,7 +69,7 @@ func convertToGoValue(value lua.LValue) interface{} {
 		return string(value.(lua.LString))
 	case lua.LTTable:
 		table := value.(*lua.LTable)
-		
+
 		isArray := true
 		maxIndex := 0
 		table.ForEach(func(key, _ lua.LValue) {
