@@ -766,4 +766,46 @@ local parsed = ini.parse("[section]\nkey=value")
 
 -- Convert table to INI string
 local ini_str = ini.stringify(config)
-``` 
+```
+
+### TAR Module
+```lua
+-- Create a TAR archive
+tar.create("archive.tar", "source_directory")
+
+-- Create a compressed TAR archive
+tar.create("archive.tar.gz", "source_directory", true)
+
+-- Extract a TAR archive
+tar.extract("archive.tar", "destination_directory")
+
+-- List contents of a TAR archive
+local files = tar.list("archive.tar")
+for i, file in ipairs(files) do
+    print(string.format("%s (%d bytes, %s)", file.name, file.size, file.type))
+end
+```
+
+The TAR module provides the following functions:
+
+#### Archive Creation
+- `tar.create(archive_path, source_path, [compress])`: Create a TAR archive from a directory
+  - `archive_path`: Path to the output archive file
+  - `source_path`: Path to the source directory
+  - `compress`: Optional boolean to enable gzip compression (default: false)
+
+#### Archive Extraction
+- `tar.extract(archive_path, dest_path)`: Extract a TAR archive to a directory
+  - `archive_path`: Path to the input archive file
+  - `dest_path`: Path to the destination directory
+
+#### Archive Listing
+- `tar.list(archive_path)`: List contents of a TAR archive
+  - Returns a table of file information with the following fields:
+    - `name`: File or directory name
+    - `size`: File size in bytes
+    - `mode`: File permissions and mode
+    - `type`: File type (regular file, directory, etc.)
+    - `mod_time`: Last modification time as Unix timestamp
+
+Note: The module automatically handles both regular TAR archives (.tar) and gzip-compressed archives (.tar.gz, .tgz). 

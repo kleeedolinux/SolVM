@@ -67,6 +67,7 @@ func NewSolVM(timeout time.Duration) *SolVM {
 	modules.RegisterCSVModule(vm.state)
 	modules.RegisterFTModule(vm.state)
 	modules.RegisterINIModule(vm.state)
+	modules.RegisterTARModule(vm.state)
 
 	return vm
 }
