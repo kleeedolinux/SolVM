@@ -1,4 +1,9 @@
 SolVM is a Lua Runtime written in Go.
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/420980fd-902e-4167-b8ba-b9ad8cb2b50c" alt="solvm-icon" width="150" style="border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" />
+  <h1 style="margin-top: 10px;">Welcome to SolVM</h1>
+  <p><em>Simple. Elegant. Powerful.</em></p>
+</div>
 
 > Perhaps of the name SolVM, SolVM is not a VM, it's a runtime. The real VM is the gopher-lua, and SolVM is just a runtime that uses gopher-lua. I put the name of SolVM because the first idea of this project is to be a VM, but then i changed my mind.
 
