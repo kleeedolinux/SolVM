@@ -1,4 +1,4 @@
-module github.com/kleeedolinux/solvm
+module solvm
 
 go 1.21
 

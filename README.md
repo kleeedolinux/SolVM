@@ -1,315 +1,312 @@
-So, SolVM. Its a Lua runtime, right? But built in Go, kinda from gopher-lua. The cool part? It runs your Lua scripts all speedy and at the same time, and it tries not to break. Got some extra tricks up its sleeve too.
+# SolVM
 
-## Whatcha get with it?
+SolVM is a high-performance Lua runtime built in Go, based on gopher-lua. It provides concurrent execution, fault tolerance, and additional functionality for Lua scripts.
 
-*   Run Lua scripts together, at the same time
-*   Keeps scripts from going haywire (with timeouts!)
-*   Easy JSON stuff (encode/decode)
-*   Safe for all that multi-taskin'
-*   Sleepy time for your scripts (`sleep()`)
-*   Modules! To keep your code tidy
-*   Concurrency like in Go (goroutines, channels!)
-*   Spots memory leaks (sometimes)
-*   Better error messages (we hope!)
-*   An HTTP client built right in
-*   Make your own HTTP, HTTPS, or WebSocket servers! How cool is that?
+## Features
 
-## Installin is easy:
+- Concurrent Lua script execution
+- Fault tolerance with timeout mechanisms
+- Custom functions for JSON encoding/decoding
+- Thread-safe operations
+- Built-in sleep functionality
+- Module system for code organization
+- Go-style concurrency primitives
+- Memory leak detection and monitoring
+- Enhanced error handling
+- HTTP client functionality
+- HTTP/HTTPS/WebSocket server support
 
-```bash
-go get github.com/kleeedolinux/solvm
-```
-(You need Go for this, obvs)
-
-## How to Use It
-
-To run a Lua file, you just do:
+## Installation
 
 ```bash
-solvm [options] <your_lua_file.lua>
+go get github.com/solvm
 ```
 
-Options ya got:
-*   `-timeout`: How long before it gives up (default is 5s)
+## Usage
 
-Like, for instance:
+Run Lua files using the command-line interface:
+
+```bash
+solvm [options] <lua-file>
+```
+
+Options:
+- `-timeout`: Execution timeout (default: 5s)
+
+Example:
 ```bash
 solvm -timeout 10s examples/test.lua
 ```
 
-## Server Magic
+## Server Features
 
-SolVM can be a server! HTTP, HTTPS, even WebSockets. Pretty neat, huh?
+SolVM provides HTTP, HTTPS, and WebSocket server functionality:
 
-### Makin' Servers
+### Creating Servers
 ```lua
--- Make an HTTP server
+-- Create HTTP server
 create_server("http_server", 8080, false)
 
--- Or an HTTPS one (needs certs)
+-- Create HTTPS server
 create_server("https_server", 8443, true, "cert.pem", "key.pem")
 ```
 
-### Handle HTTP stuff
+### HTTP Handlers
 ```lua
 handle_http("http_server", "/", function(req)
-    -- See what came in
+    -- Access request details
     print("Method:", req.method)
     print("Path:", req.path)
-    print("Query:", req.query) -- stuff after the ?
+    print("Query:", req.query)
     print("Headers:", req.headers)
-
-    -- Send somethin' back
+    
+    -- Return response
     return {
         status = 200,
         headers = {
             ["Content-Type"] = "application/json"
         },
         body = json_encode({
-            message = "Hello from SolVM! How u doin?"
+            message = "Hello from SolVM!"
         })
     }
 end)
 ```
 
-### WebSocket Handlers (for real-time chatty apps!)
+### WebSocket Handlers
 ```lua
 handle_ws("http_server", "/ws", function(ws)
-    -- Say hi!
+    -- Send message
     ws.send("Hello client!")
-
-    -- Listen for stuff
+    
+    -- Receive message
     local message = ws.receive()
-    print("Got this:", message)
+    print("Received:", message)
 end)
 ```
 
-### Control Your Server
+### Server Control
 ```lua
--- Start it up!
+-- Start server
 start_server("http_server")
 
--- Or shut it down
+-- Stop server
 stop_server("http_server")
 ```
 
-### Full Server Example
+### Example Server
 ```lua
--- Make and set up a server
+-- Create and configure server
 create_server("my_server", 8080, false)
 
--- What to do for normal web pages
+-- Handle HTTP requests
 handle_http("my_server", "/", function(req)
     return {
         status = 200,
-        body = "Hello World from my SolVM server!"
+        body = "Hello World!"
     }
 end)
 
--- What to do for WebSockets
+-- Handle WebSocket connections
 handle_ws("my_server", "/ws", function(ws)
-    ws.send("Youre connected!")
+    ws.send("Connected!")
     while true do
         local msg = ws.receive()
         if msg then
-            ws.send("You said: " .. msg)
-        else
-            break -- important!
+            ws.send("Echo: " .. msg)
         end
     end
 end)
 
--- Kick it off
+-- Start server
 start_server("my_server")
 ```
 
-## Keeping an Eye on Things & Handlin' Errors
+## Monitoring and Error Handling
 
-SolVM gives ya some tools for checkin memory and dealin with problems:
+SolVM provides tools for monitoring memory usage and handling errors:
 
-### Error Stuff
+### Error Handling
 ```lua
 on_error(function(err)
-    print("Oh no, an error:", err)
+    print("Error occurred:", err)
 end)
 ```
 
-### Memory Checkin
+### Memory Monitoring
 ```lua
 local mem_stats = check_memory()
-print("Hows the memory doin:")
+print("Memory usage:")
 print("  Allocation diff:", mem_stats.alloc_diff)
 print("  Total allocation diff:", mem_stats.total_alloc_diff)
 print("  System memory diff:", mem_stats.sys_diff)
 print("  Number of goroutines:", mem_stats.goroutines)
 ```
 
-### See Your Goroutines
+### Goroutine Tracking
 ```lua
 local goroutines = get_goroutines()
 for id, name in pairs(goroutines) do
-    print("Goroutine", id, "is", name)
+    print("Goroutine", id, ":", name)
 end
 ```
 
-## Doin' Things at the Same Time (Concurrency)
+## Concurrency Features
 
-SolVM has some Go-like ways to do many things at once:
+SolVM provides Go-style concurrency primitives:
 
-### Goroutines (like little workers)
+### Goroutines
 ```lua
 go(function()
-    -- This code runs on its own, kinda
-    print("Runnin in a goroutine!")
+    -- This runs in a separate goroutine
+    print("Running in goroutine")
 end)
 ```
 
-### Channels (for talkin' between goroutines)
+### Channels
 ```lua
--- Make a channel
-chan("my_channel", 5)  -- can hold 5 things
+-- Create a channel
+chan("my_channel", 5)  -- buffer size of 5
 
--- Put somethin in
+-- Send to channel
 send("my_channel", "hello")
 
--- Get somethin out
+-- Receive from channel
 local value = receive("my_channel")
 
--- Pick from a few channels
-local value, channel_name_it_came_from = select("ch1", "ch2")
+-- Select from multiple channels
+local value, channel = select("ch1", "ch2")
 ```
 
-### Example of Concurrency
+### Example
 ```lua
--- Make some channels
+-- Create channels
 chan("numbers", 5)
 chan("results", 5)
 
--- Make a worker
+-- Spawn a worker
 go(function()
     while true do
         local num = receive("numbers")
-        if num == nil then break end -- stop if channel closed or empty and done
+        if num == nil then break end
         send("results", num * 2)
     end
 end)
 
--- Send a number and get a result
+-- Send and receive
 send("numbers", 42)
 local result = receive("results")
-print("Result is:", result) -- should be 84
 ```
 
-## Module System (for not makin a huge mess)
+## Module System
 
-SolVM has a module system so you can split up your code. Use `import` to grab 'em:
+SolVM provides a module system for organizing and reusing code. Modules can be imported using the `import` function:
 
 ```lua
--- Get a module from a local file
+-- Import from local file
 import("module_name")
 
--- Or from the internet!
+-- Import from URL
 import("https://raw.githubusercontent.com/user/repo/main/module.lua")
 ```
 
-It looks for modules here:
-1.  Same folder as your script
-2.  A `modules` folder where your project is
-3.  Web URLs (http:// or https://)
+Modules are searched in the following locations:
+1. Same directory as the current script
+2. `modules` directory in the project root
+3. Remote URLs (http:// or https://)
 
-Example module (say, `modules/math_stuff.lua`):
+Example module (`modules/math_utils.lua`):
 ```lua
-local math_stuff = {}
+local math_utils = {}
 
-function math_stuff.add(a, b)
+function math_utils.add(a, b)
     return a + b
 end
 
-function math_stuff.subtract(a, b)
+function math_utils.subtract(a, b)
     return a - b
 end
 
-return math_stuff
+return math_utils
 ```
 
-And usin' it:
+Using the module:
 ```lua
--- Local one
-import("math_stuff")
-local sum = math_stuff.add(5, 3)
-print(sum) -- prints 8
+-- Local import
+import("math_utils")
+local result = math_utils.add(5, 3)
+print(result) -- Output: 8
 
--- One from the web
-import("https://raw.githubusercontent.com/someuser/somerepo/main/cool_utils.lua")
-local remote_thing = cool_utils.do_something_cool()
+-- Remote import
+import("https://raw.githubusercontent.com/username/repo/main/utils.lua")
+local remote_result = utils.some_function()
 ```
-FYI: Web modules get saved in memory so it dont download 'em over and over.
 
-## Example Lua Script (a simple one)
+Note: Remote modules are cached in memory to prevent multiple downloads of the same module.
+
+## Example Lua Script
 
 ```lua
-local my_data = {
-    name = "Tester",
-    values = {10, 20, 30}
+local data = {
+    name = "test",
+    values = {1, 2, 3}
 }
 
-local json_version = json_encode(my_data)
-print("As JSON:", json_version)
+local json_str = json_encode(data)
+print("Encoded:", json_str)
 
-local back_to_lua = json_decode(json_version)
-print("Decoded name:", back_to_lua.name)
+local decoded = json_decode(json_str)
+print("Decoded name:", decoded.name)
 
-print("Gonna sleep for 1 sec...")
+print("Sleeping for 1 second...")
 sleep(1)
-print("I'm awake!")
+print("Awake!")
 ```
 
-## Special Functions SolVM Gives Ya
+## Custom Functions
 
-SolVM adds some handy functions:
+SolVM provides several custom functions:
 
-*   `json_encode(value)`: Lua to JSON string
-*   `json_decode(string)`: JSON string to Lua
-*   `sleep(seconds)`: Pauses for a bit
-*   `import(module_name)`: Loads a Lua module
-*   `go(function)`: Runs function in a new goroutine
-*   `chan(name, [buffer_size])`: Makes a new channel
-*   `send(channel, value)`: Sends to a channel
-*   `receive(channel)`: Gets from a channel
-*   `select(channel1, channel2, ...)`: Waits for any of several channels
-*   `on_error(function)`: Sets what to do when an error happens
-*   `check_memory()`: Shows memory stats
-*   `get_goroutines()`: Lists active goroutines
-*   `wait()`: Waits for all your goroutines to finish
+- `json_encode(value)`: Converts Lua values to JSON string
+- `json_decode(string)`: Converts JSON string to Lua values
+- `sleep(seconds)`: Pauses execution for specified seconds
+- `import(module_name)`: Imports a Lua module
+- `go(function)`: Runs a function in a new goroutine
+- `chan(name, [buffer_size])`: Creates a new channel
+- `send(channel, value)`: Sends a value to a channel
+- `receive(channel)`: Receives a value from a channel
+- `select(channel1, channel2, ...)`: Selects from multiple channels
+- `on_error(function)`: Registers an error handler
+- `check_memory()`: Returns memory usage statistics
+- `get_goroutines()`: Returns list of active goroutines
+- `wait()`: Waits for all goroutines to complete
 
-### Networky Functions
+### Network Functions
 
-SolVM can do some low-level network stuff too:
+SolVM provides low-level network operations:
 
 #### TCP Server
 ```lua
--- Make a TCP server listen on port 8080
-local server_channel = tcp_listen(8080)
+-- Create TCP server
+local server = tcp_listen(8080)
 
--- Handle new connections
+-- Handle incoming connections
 go(function()
     while true do
-        local conn = receive(server_channel) -- wait for a connection
+        local conn = receive(server)
         if conn then
-            go(function() -- handle this connection in its own goroutine
+            go(function()
                 while true do
                     local data = conn.read()
                     if data then
-                        print("TCP Server Got:", data)
-                        conn.write("Server says echo: " .. data)
+                        print("Received:", data)
+                        conn.write("Echo: " .. data)
                     else
-                        break -- connection closed or error
+                        break
                     end
                 end
                 conn.close()
             end)
-        else
-            break -- server channel closed
         end
     end
 end)
@@ -317,216 +314,201 @@ end)
 
 #### TCP Client
 ```lua
--- Connect to a TCP server
+-- Connect to TCP server
 local conn = tcp_connect("localhost", 8080)
 
-if conn then
-    -- Send some data
-    conn.write("Hello, TCP Server from SolVM!")
+-- Send data
+conn.write("Hello, Server!")
 
-    -- Get a response
-    local response = conn.read()
-    print("TCP Client Got Response:", response)
+-- Receive response
+local response = conn.read()
+print("Response:", response)
 
-    -- Close up
-    conn.close()
-else
-    print("Couldnt connect to TCP server")
-end
+-- Close connection
+conn.close()
 ```
 
 #### UDP
 ```lua
--- Send a UDP message (fire and forget!)
-udp_sendto("localhost", 8080, "Hello, UDP world!")
+-- Send UDP message
+udp_sendto("localhost", 8080, "Hello, UDP!")
 
--- Listen for UDP messages
-local udp_listener_channel = udp_recvfrom(8080)
-go(function()
-    while true do
-        local msg_table = receive(udp_listener_channel) -- {data="...", addr="..."}
-        if msg_table then
-            print("UDP Got from", msg_table.addr, ":", msg_table.data)
-        else
-            break -- channel closed
-        end
-    end
-end)
-```
-
-#### DNS Lookup
-```lua
--- Find IP for a hostname
-local ip_addr = resolve_dns("example.com")
-print("example.com IP is:", ip_addr)
-```
-
-Connection objects (from `tcp_listen` or `tcp_connect`) have:
-*   `read()`: Reads data
-*   `write(data)`: Writes data
-*   `close()`: Closes it
-
-### Scheduler Functions (do stuff later)
-
-SolVM can schedule things to run:
-
-```lua
--- Do this every 5 seconds
-local interval_id = set_interval(function()
-    print("Interval just happened!")
-end, 5)
-
--- Do this once, after 3 seconds
-local timeout_id = set_timeout(function()
-    print("Timeout just happened!")
-end, 3)
-
--- Run this based on a cron schedule (e.g., every minute)
-local cron_id = cron("0 * * * * *", function()
-    print("Cron job just ran!")
-end)
-
--- To stop them:
--- clear_interval(interval_id)
--- clear_timeout(timeout_id)
--- clear_cron(cron_id)
-```
-
-Cron Format (kinda tricky):
-```
-.---------------- second (0 - 59)
-|  .------------- minute (0 - 59)
-|  |  .---------- hour (0 - 23)
-|  |  |  .------- day of month (1 - 31)
-|  |  |  |  .---- month (1 - 12)
-|  |  |  |  |  .- day of week (0 - 6) (Sunday=0)
-|  |  |  |  |  |
-*  *  *  *  *  *
-```
-Examples:
-*   `"0 * * * * *"` - Every minute, on the 0 second
-*   `"0 0 * * * *"` - Every hour, at minute 0, second 0
-*   `"0 0 0 * * *"` - Every day at midnight
-*   `"0 0 12 * * *"`- Every day at noon
-*   `"0 0 0 1 * *"` - First day of every month, at midnight
-*   `"0 0 0 * * 0"` - Every Sunday at midnight
-
-### Filesystem Stuff
-
-SolVM can mess with files and folders:
-
-```lua
--- Read a file's content
-local stuff = read_file("my_stuff/notes.txt")
-print(stuff)
-
--- Write to a file
-write_file("my_stuff/output.txt", "This is new content!")
-
--- See what's in a directory
-local dir_contents = list_dir("my_stuff/")
-if dir_contents then
-    for _, item in ipairs(dir_contents) do
-        print("Name:", item.name)
-        print("  Is it a folder?:", item.is_dir)
-        print("  Size:", item.size)
-        print("  Mode (permissions):", item.mode)
-        print("  Last changed:", item.mod_time)
+-- Receive UDP messages
+local udp = udp_recvfrom(8080)
+while true do
+    local msg = udp.receive()
+    if msg then
+        print("Received from", msg.addr, ":", msg.data)
     end
 end
 ```
-`list_dir` gives you a table of files/folders with:
-*   `name`: Name of the thing
-*   `is_dir`: True if it's a directory, false if not
-*   `size`: File size (bytes)
-*   `mode`: File mode (permissions n stuff)
-*   `mod_time`: When it was last changed
 
-## HTTP Client (for fetching web pages)
+#### DNS Resolution
+```lua
+-- Resolve hostname to IP
+local ip = resolve_dns("example.com")
+print("IP address:", ip)
+```
 
-SolVM has its own HTTP client to grab stuff from the web:
+Connection objects provide the following methods:
+- `read()`: Read data from the connection
+- `write(data)`: Write data to the connection
+- `close()`: Close the connection
 
-### Basic HTTP
+### Scheduler Functions
+
+SolVM provides scheduling capabilities:
+
+```lua
+-- Set an interval (runs every 5 seconds)
+local interval_id = set_interval(function()
+    print("Interval triggered!")
+end, 5)
+
+-- Set a timeout (runs after 3 seconds)
+local timeout_id = set_timeout(function()
+    print("Timeout triggered!")
+end, 3)
+
+-- Set a cron job (runs every minute)
+local cron_id = cron("0 * * * * *", function()
+    print("Cron job triggered!")
+end)
+```
+
+Cron Schedule Format:
+```
+┌─────────────── second (0 - 59)
+│ ┌───────────── minute (0 - 59)
+│ │ ┌─────────── hour (0 - 23)
+│ │ │ ┌───────── day of month (1 - 31)
+│ │ │ │ ┌─────── month (1 - 12)
+│ │ │ │ │ ┌───── day of week (0 - 6)
+│ │ │ │ │ │
+* * * * * *
+```
+
+Examples:
+- `"0 * * * * *"` - Every minute
+- `"0 0 * * * *"` - Every hour
+- `"0 0 0 * * *"` - Every day at midnight
+- `"0 0 12 * * *"` - Every day at noon
+- `"0 0 0 1 * *"` - First day of every month
+- `"0 0 0 * * 0"` - Every Sunday
+
+### Filesystem Functions
+
+SolVM provides filesystem operations:
+
+```lua
+-- Read file content
+local content = read_file("path/to/file.txt")
+print(content)
+
+-- Write content to file
+write_file("path/to/file.txt", "Hello, World!")
+
+-- List directory contents
+local files = list_dir("path/to/directory")
+for _, file in ipairs(files) do
+    print("Name:", file.name)
+    print("Is directory:", file.is_dir)
+    print("Size:", file.size)
+    print("Mode:", file.mode)
+    print("Modified:", file.mod_time)
+end
+```
+
+The `list_dir` function returns a table of file information with the following fields:
+- `name`: File or directory name
+- `is_dir`: Boolean indicating if it's a directory
+- `size`: File size in bytes
+- `mode`: File permissions and mode
+- `mod_time`: Last modification time
+
+## HTTP Client
+
+SolVM provides HTTP client functionality for making HTTP requests:
+
+### Basic HTTP Methods
 ```lua
 -- GET request
-local resp = http_get("https://api.someplace.com/info")
-print("Status Code:", resp.status)
-print("Body:", resp.body)
+local response = http_get("https://api.example.com/data")
+print("Status:", response.status)
+print("Body:", response.body)
 
--- POST request (with JSON)
-local my_data = { item = "thing", quantity = 2 }
-local json_payload = json_encode(my_data)
-local resp_post = http_post("https://api.someplace.com/submit", json_payload)
+-- POST request with JSON
+local data = {
+    name = "test",
+    value = 42
+}
+local json_data = json_encode(data)
+local response = http_post("https://api.example.com/data", json_data)
 
 -- PUT request
-local resp_put = http_put("https://api.someplace.com/update/123", json_payload)
+local response = http_put("https://api.example.com/data", json_data)
 
 -- DELETE request
-local resp_delete = http_delete("https://api.someplace.com/remove/123")
+local response = http_delete("https://api.example.com/data")
 ```
 
-### Custom HTTP Requests (more control)
+### Custom HTTP Requests
 ```lua
--- Custom request with your own headers
-local my_headers = {
-    ["Authorization"] = "Bearer mysecrettoken",
+-- Custom request with headers
+local headers = {
+    ["Authorization"] = "Bearer token",
     ["Content-Type"] = "application/json"
 }
-local resp_custom = http_request("GET", "https://api.someplace.com/secretdata", nil, my_headers)
+local response = http_request("GET", "https://api.example.com/data", nil, headers)
 ```
 
-### What You Get Back (Response)
-All HTTP functions give you a table with:
-*   `status`: The HTTP status code (like 200 for OK, 404 for not found)
-*   `body`: The page content (as a string)
-*   `headers`: A table of the response headers
+### Response Format
+All HTTP functions return a table with the following fields:
+- `status`: HTTP status code
+- `body`: Response body as string
+- `headers`: Table containing response headers
 
-### Error Handling for HTTP
+### Error Handling
 ```lua
-on_error(function(err_msg)
-    print("HTTP Request Broke:", err_msg)
+on_error(function(err)
+    print("HTTP Error:", err)
 end)
--- Or you can check resp.status for non-2xx codes
 ```
 
-## Debug Functions (for when things go wrong)
+## Debug Functions
 
-SolVM got a few tools to help ya debug:
+SolVM provides debugging capabilities:
 
 ```lua
--- Watch a file. If it changes, run the function.
-watch_file("my_script.lua", function()
-    print("my_script.lua changed! Reloading...")
-    reload_script() -- Tries to reload the main script
-end)
-
--- Print where you are in the code right now
-trace()
-```
-The debug functions are:
-*   `watch_file(path_to_file, callback_function)`: Watches a file, calls callback on change.
-*   `reload_script()`: Tries to reload the current main script.
-*   `trace()`: Prints the current call stack (what functions called what).
-
-Example use:
-```lua
--- Watch your config and reload if it changes
-watch_file("config.lua", function()
-    print("Config file changed, reloading script...")
+-- Watch a file for changes and reload when modified
+watch_file("script.lua", function()
+    print("Script modified, reloading...")
     reload_script()
 end)
 
-function a_deep_function()
-    trace() -- This will show you how you got here
-end
+-- Print current stack trace
+trace()
+```
 
-function another_function()
-    a_deep_function()
-end
+The debug functions provide:
+- `watch_file(path, callback)`: Watch a file for changes and call the callback when modified
+- `reload_script()`: Reload the current script
+- `trace()`: Print the current stack trace
 
-another_function()
+Example usage:
+```lua
+-- Watch and auto-reload
+watch_file("config.lua", function()
+    print("Config changed, reloading...")
+    reload_script()
+end)
+
+-- Debug stack trace
+function some_function()
+    trace()  -- Will print the current call stack
+end
 ```
 
 ## License
 
-MIT (So, do what ya want with it, pretty much)
+MIT 
