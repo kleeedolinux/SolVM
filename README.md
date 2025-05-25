@@ -4,6 +4,12 @@ SolVM is a Lua Runtime written in Go.
   <h1 style="margin-top: 10px;">Welcome to SolVM</h1>
   <p><em>Simple. Elegant. Powerful.</em></p>
 </div>
+<p align="center">
+  <strong>Love KleeStore? Give it a star on GitHub! ⭐ Your support helps!</strong><br/>
+  <a href="https://github.com/kleeedolinux/solvm">
+    <img src="https://img.shields.io/github/stars/kleeedolinux/solvm?style=social" alt="GitHub stars">
+  </a>
+</p>
 
 > Perhaps of the name SolVM, SolVM is not a VM, it's a runtime. The real VM is the gopher-lua, and SolVM is just a runtime that uses gopher-lua. I put the name of SolVM because the first idea of this project is to be a VM, but then i changed my mind.
 
@@ -40,6 +46,12 @@ solvm main.lua
 - Network utilities  
 - Import system  
 - Monitoring and resource checking  
+
+
+<p align="center">
+  <strong>Found SolVM useful? Don't forget to <a href="https://github.com/kleeedolinux/solvm">star the repository</a>!</strong>
+</p>
+
 
 ## Installation
 [Release](https://github.com/kleeedolinux/SolVM/releases)
