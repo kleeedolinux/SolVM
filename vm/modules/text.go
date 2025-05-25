@@ -40,7 +40,7 @@ func RegisterTextModule(L *lua.LState) {
 		parts := strings.Split(str, sep)
 		table := L.NewTable()
 		for i, part := range parts {
-			L.SetTable(table, lua.LNumber(i+1), lua.LString(part))
+			L.RawSetInt(table, i+1, lua.LString(part))
 		}
 		L.Push(table)
 		return 1
@@ -51,9 +51,7 @@ func RegisterTextModule(L *lua.LState) {
 		sep := L.CheckString(2)
 		var parts []string
 		table.ForEach(func(_, value lua.LValue) {
-			if value.Type() == lua.LTString {
-				parts = append(parts, value.String())
-			}
+			parts = append(parts, value.String())
 		})
 		L.Push(lua.LString(strings.Join(parts, sep)))
 		return 1
@@ -63,8 +61,7 @@ func RegisterTextModule(L *lua.LState) {
 		str := L.CheckString(1)
 		old := L.CheckString(2)
 		new := L.CheckString(3)
-		n := L.OptInt(4, -1)
-		L.Push(lua.LString(strings.Replace(str, old, new, n)))
+		L.Push(lua.LString(strings.Replace(str, old, new, -1)))
 		return 1
 	}))
 
@@ -89,51 +86,29 @@ func RegisterTextModule(L *lua.LState) {
 		return 1
 	}))
 
-	L.SetField(textModule, "count", L.NewFunction(func(L *lua.LState) int {
-		str := L.CheckString(1)
-		substr := L.CheckString(2)
-		L.Push(lua.LNumber(strings.Count(str, substr)))
-		return 1
-	}))
-
-	L.SetField(textModule, "repeat", L.NewFunction(func(L *lua.LState) int {
-		str := L.CheckString(1)
-		count := L.CheckInt(2)
-		L.Push(lua.LString(strings.Repeat(str, count)))
-		return 1
-	}))
-
 	L.SetField(textModule, "pad_left", L.NewFunction(func(L *lua.LState) int {
 		str := L.CheckString(1)
 		length := L.CheckInt(2)
-		pad := L.OptString(3, " ")
+		pad := L.CheckString(3)
 		if len(pad) == 0 {
 			L.RaiseError("pad string cannot be empty")
 			return 0
 		}
-		if len(str) >= length {
-			L.Push(lua.LString(str))
-			return 1
+		for len(str) < length {
+			str = pad + str
 		}
-		padding := strings.Repeat(pad, (length-len(str))/len(pad)+1)
-		L.Push(lua.LString(padding[:length-len(str)] + str))
+		L.Push(lua.LString(str))
 		return 1
 	}))
 
-	L.SetField(textModule, "pad_right", L.NewFunction(func(L *lua.LState) int {
+	L.SetField(textModule, "repeat_str", L.NewFunction(func(L *lua.LState) int {
 		str := L.CheckString(1)
-		length := L.CheckInt(2)
-		pad := L.OptString(3, " ")
-		if len(pad) == 0 {
-			L.RaiseError("pad string cannot be empty")
+		count := L.CheckInt(2)
+		if count < 0 {
+			L.RaiseError("count cannot be negative")
 			return 0
 		}
-		if len(str) >= length {
-			L.Push(lua.LString(str))
-			return 1
-		}
-		padding := strings.Repeat(pad, (length-len(str))/len(pad)+1)
-		L.Push(lua.LString(str + padding[:length-len(str)]))
+		L.Push(lua.LString(strings.Repeat(str, count)))
 		return 1
 	}))
 }

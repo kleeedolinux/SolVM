@@ -51,10 +51,8 @@ print("YAML decoded:", decoded_yaml.name)
 -- JSONC Module Example
 local jsonc_str = [[
 {
-    // This is a comment
     "name": "JSONC Example",
     "version": "1.0",
-    /* This is a block comment */
     "config": {
         "debug": true,
         "timeout": 30
@@ -67,25 +65,25 @@ local encoded_jsonc = jsonc.encode(decoded_jsonc)
 print("JSONC encoded:", encoded_jsonc)
 
 -- Text Module Example
-local text = "  Hello, World!  "
-print("Original:", text)
-print("Trimmed:", text.trim(text))
-print("Lowercase:", text.lower(text))
-print("Uppercase:", text.upper(text))
-print("Title case:", text.title(text))
+local text_str = "  Hello, World!  "
+print("Original:", text_str)
+print("Trimmed:", text.trim(text_str))
+print("Lowercase:", text.lower(text_str))
+print("Uppercase:", text.upper(text_str))
+print("Title case:", text.title(text_str))
 
-local words = text.split(text.trim(text), " ")
+local words = text.split(text.trim(text_str), " ")
 print("Split words:", text.join(words, ", "))
 
-local replaced = text.replace(text, "World", "Lua")
+local replaced = text.replace(text_str, "World", "Lua")
 print("Replaced:", replaced)
 
-print("Contains 'Hello':", text.contains(text, "Hello"))
-print("Starts with '  H':", text.starts_with(text, "  H"))
-print("Ends with '!  ':", text.ends_with(text, "!  "))
+print("Contains 'Hello':", text.contains(text_str, "Hello"))
+print("Starts with '  H':", text.starts_with(text_str, "  H"))
+print("Ends with '!  ':", text.ends_with(text_str, "!  "))
 
 local padded = text.pad_left("123", 5, "0")
 print("Padded left:", padded)
 
-local repeated = text.repeat("abc", 3)
+local repeated = text.repeat_str("abc", 3)
 print("Repeated:", repeated) 
