@@ -63,7 +63,7 @@ If Windows
 ```
 
 ## Documentation
-(Coming Soon)
+[DOC.md](DOC.md)
 
 ## License
 MIT
