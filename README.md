@@ -15,6 +15,11 @@ SolVM is a high-performance Lua runtime built in Go, based on gopher-lua. It pro
 - Enhanced error handling
 - HTTP client functionality
 - HTTP/HTTPS/WebSocket server support
+- UUID generation
+- Random number generation
+- TOML/YAML/JSONC support
+- Text manipulation utilities
+- Cryptographic functions (AES, DES, RC4, RSA, hashing)
 
 ## Installation
 
@@ -512,3 +517,175 @@ end
 ## License
 
 MIT 
+
+## Additional Modules
+
+### UUID Module
+```lua
+-- Generate UUID v4
+local uuid1 = uuid.v4()
+local uuid2 = uuid.v4_without_hyphens()
+
+-- Validate UUID
+local is_valid = uuid.is_valid(uuid1)
+```
+
+### Random Module
+```lua
+-- Generate random number between 0 and 1
+local random_num = random.number()
+
+-- Generate random integer between min and max
+local random_int = random.int(1, 100)
+
+-- Generate random string of specified length
+local random_str = random.string(10)
+```
+
+### TOML Module
+```lua
+-- Encode table to TOML
+local toml_str = toml.encode({
+    title = "Example",
+    owner = {
+        name = "John Doe",
+        age = 30
+    }
+})
+
+-- Decode TOML to table
+local decoded = toml.decode(toml_str)
+```
+
+### YAML Module
+```lua
+-- Encode table to YAML
+local yaml_str = yaml.encode({
+    name = "Example",
+    version = "1.0",
+    config = {
+        debug = true
+    }
+})
+
+-- Decode YAML to table
+local decoded = yaml.decode(yaml_str)
+```
+
+### JSONC Module
+```lua
+-- Decode JSONC (JSON with comments)
+local jsonc_str = [[
+{
+    // This is a comment
+    "name": "Example",
+    /* This is a block comment */
+    "config": {
+        "debug": true
+    }
+}
+]]
+local decoded = jsonc.decode(jsonc_str)
+
+-- Encode table to JSONC
+local encoded = jsonc.encode(decoded)
+```
+
+### Text Module
+```lua
+-- String manipulation
+local text = "  Hello, World!  "
+local trimmed = text.trim(text)
+local lower = text.lower(text)
+local upper = text.upper(text)
+local title = text.title(text)
+
+-- Split and join
+local words = text.split(text.trim(text), " ")
+local joined = text.join(words, ", ")
+
+-- Replace
+local replaced = text.replace(text, "World", "Lua")
+
+-- String checks
+local contains = text.contains(text, "Hello")
+local starts = text.starts_with(text, "  H")
+local ends = text.ends_with(text, "!  ")
+
+-- Padding
+local padded = text.pad_left("123", 5, "0")
+
+-- Repeat
+local repeated = text.repeat("abc", 3)
+```
+
+### Crypto Module
+```lua
+-- Hash functions
+local data = "Hello, World!"
+local md5_hash = crypto.md5(data)
+local sha1_hash = crypto.sha1(data)
+local sha256_hash = crypto.sha256(data)
+local sha512_hash = crypto.sha512(data)
+
+-- Base64 encoding/decoding
+local encoded = crypto.base64_encode(data)
+local decoded = crypto.base64_decode(encoded)
+
+-- AES encryption/decryption
+local key = "1234567890123456"  -- 16 bytes for AES-128
+local iv = "1234567890123456"   -- 16 bytes for AES-128
+local encrypted = crypto.aes_encrypt(data, key, iv)
+local decrypted = crypto.aes_decrypt(encrypted, key, iv)
+
+-- DES encryption/decryption
+local des_key = "12345678"  -- 8 bytes for DES
+local des_iv = "12345678"   -- 8 bytes for DES
+local des_encrypted = crypto.des_encrypt(data, des_key, des_iv)
+local des_decrypted = crypto.des_decrypt(des_encrypted, des_key, des_iv)
+
+-- RC4 encryption/decryption
+local rc4_key = "mysecretkey"
+local rc4_encrypted = crypto.rc4_encrypt(data, rc4_key)
+local rc4_decrypted = crypto.rc4_decrypt(rc4_encrypted, rc4_key)
+
+-- RSA key generation
+local rsa_keys = crypto.rsa_generate(2048)
+print("Private Key:", rsa_keys.private)
+print("Public Key:", rsa_keys.public)
+
+-- Random bytes generation
+local random = crypto.random_bytes(32)
+```
+
+The crypto module provides the following functions:
+
+#### Hash Functions
+- `crypto.md5(data)`: Calculate MD5 hash
+- `crypto.sha1(data)`: Calculate SHA1 hash
+- `crypto.sha256(data)`: Calculate SHA256 hash
+- `crypto.sha512(data)`: Calculate SHA512 hash
+
+#### Base64
+- `crypto.base64_encode(data)`: Encode data to Base64
+- `crypto.base64_decode(encoded)`: Decode Base64 data
+
+#### AES Encryption
+- `crypto.aes_encrypt(data, key, iv)`: Encrypt data using AES-CBC
+- `crypto.aes_decrypt(encrypted, key, iv)`: Decrypt AES-CBC data
+
+#### DES Encryption
+- `crypto.des_encrypt(data, key, iv)`: Encrypt data using DES-CBC
+- `crypto.des_decrypt(encrypted, key, iv)`: Decrypt DES-CBC data
+
+#### RC4 Encryption
+- `crypto.rc4_encrypt(data, key)`: Encrypt data using RC4
+- `crypto.rc4_decrypt(encrypted, key)`: Decrypt RC4 data
+
+#### RSA
+- `crypto.rsa_generate([bits])`: Generate RSA key pair (default 2048 bits)
+
+#### Random
+- `crypto.random_bytes(length)`: Generate cryptographically secure random bytes
+
+Note: All encrypted data is returned as Base64-encoded strings for safe transmission and storage. 

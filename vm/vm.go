@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"solvm/vm/modules"
+
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -52,6 +54,15 @@ func NewSolVM(timeout time.Duration) *SolVM {
 	vm.schedMod = NewSchedulerModule(vm)
 	vm.netMod = NewNetworkModule(vm)
 	vm.debugMod = NewDebugModule(vm)
+
+	modules.RegisterUUIDModule(vm.state)
+	modules.RegisterRandomModule(vm.state)
+	modules.RegisterTOMLModule(vm.state)
+	modules.RegisterYAMLModule(vm.state)
+	modules.RegisterJSONCModule(vm.state)
+	modules.RegisterTextModule(vm.state)
+	modules.RegisterCryptoModule(vm.state)
+
 	return vm
 }
 
