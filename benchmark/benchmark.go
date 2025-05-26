@@ -8,7 +8,7 @@ import (
 	"solvm/vm"
 )
 
-func main() {
+func benchmark() {
 	config := vm.Config{
 		Timeout:       time.Second * 30,
 		Debug:         false,
@@ -129,4 +129,8 @@ func max(durations []time.Duration) time.Duration {
 		}
 	}
 	return max
+}
+
+func main() {
+	benchmark()
 }

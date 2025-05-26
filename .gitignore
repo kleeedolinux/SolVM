@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-
+bin/
 # Test binary, built with `go test -c`
 *.test
 
@@ -16,7 +16,6 @@ vendor/
 
 # Go workspace file
 go.work
-solvm
 # IDE specific files
 .idea/
 .vscode/
