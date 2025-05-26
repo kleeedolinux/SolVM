@@ -87,55 +87,10 @@ If Windows
 [DOC.md](DOC.md)
 
 ## Benchmark
-```bash
-go run benchmark/benchmark.go
-```
-```bash
-Running benchmark: Simple Arithmetic       
-  Iteration 1: 31.1518ms
-  Iteration 2: 23.5224ms
-  Iteration 3: 24.1932ms
-  Iteration 4: 26.413ms
-  Iteration 5: 25.0678ms
-
-Running benchmark: Table Operations        
-  Iteration 1: 20.4479ms
-  Iteration 2: 18.9732ms
-  Iteration 3: 17.5482ms
-  Iteration 4: 16.2188ms
-  Iteration 5: 17.5624ms
-
-  Iteration 5: 1.11ms
-
-Running benchmark: String Operations       
-  Iteration 1: 111.8972ms
-  Iteration 2: 100.1595ms
-  Iteration 3: 96.002ms
-  Iteration 4: 101.6598ms
-  Iteration 5: 99.4323ms
-
-Benchmark Results Summary:
-=========================
-Table Operations:
-  Average: 18.1501ms
-  Min: 16.2188ms
-  Max: 20.4479ms
-Function Calls:
-  Average: 1.53918ms
-  Min: 1.0022ms
-  Max: 2.035ms
-String Operations:
-  Average: 101.83016ms
-  Min: 96.002ms
-  Max: 111.8972ms
-Simple Arithmetic:
-  Average: 26.06964ms
-  Min: 23.5224ms
-  Max: 31.1518ms
-```	
+[BENCHMARK.md](BENCHMARK.md)
 
 ## License
-MIT
+[LICENSE](LICENSE)
 
 ## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+[CONTRIBUTING.md](CONTRIBUTING.md)
