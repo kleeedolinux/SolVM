@@ -2,18 +2,112 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	"solvm/vm"
 )
 
-const VERSION = "1.2.0"
+const VERSION = "1.3.0"
 const COPYRIGHT = "SolVM (c) 2025"
+const GITHUB_API_URL = "https://api.github.com/repos/kleeedolinux/SolVM/releases/latest"
+
+type Release struct {
+	TagName string `json:"tag_name"`
+	Assets  []struct {
+		Name               string `json:"name"`
+		BrowserDownloadURL string `json:"browser_download_url"`
+	} `json:"assets"`
+}
+
+func checkForUpdates() {
+	resp, err := http.Get(GITHUB_API_URL)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	var release Release
+	if err := json.Unmarshal(body, &release); err != nil {
+		return
+	}
+
+	latestVersion := strings.TrimPrefix(release.TagName, "v")
+	if latestVersion != VERSION {
+		fmt.Printf("New version available: %s (current: %s)\n", latestVersion, VERSION)
+		fmt.Println("Run 'solvm update' to update to the latest version")
+	}
+}
+
+func updateSolVM() error {
+	var installerURL string
+	var installerName string
+
+	switch runtime.GOOS {
+	case "windows":
+		installerName = "solvm-installer-windows-amd64.exe"
+	case "linux":
+		if runtime.GOARCH == "arm64" {
+			installerName = "solvm-installer-linux-arm64"
+		} else {
+			installerName = "solvm-installer-linux-amd64"
+		}
+	case "darwin":
+		if runtime.GOARCH == "arm64" {
+			installerName = "solvm-installer-darwin-arm64"
+		} else {
+			installerName = "solvm-installer-darwin-amd64"
+		}
+	default:
+		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+	}
+
+	installerURL = fmt.Sprintf("https://github.com/kleeedolinux/SolVM-installer/releases/download/v1.0.0/%s", installerName)
+
+	resp, err := http.Get(installerURL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	installerPath := filepath.Join(os.TempDir(), installerName)
+	file, err := os.Create(installerPath)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(installerPath)
+
+	_, err = io.Copy(file, resp.Body)
+	file.Close()
+	if err != nil {
+		return err
+	}
+
+	if runtime.GOOS != "windows" {
+		if err := os.Chmod(installerPath, 0755); err != nil {
+			return err
+		}
+	}
+
+	cmd := exec.Command(installerPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
 
 func printUsage() {
 	fmt.Printf("%s - A Lua Virtual Machine with Enhanced Features\n", COPYRIGHT)
@@ -25,6 +119,7 @@ func printUsage() {
 	fmt.Println("  -memory-limit int   Memory limit in MB (default 1024)")
 	fmt.Println("  -max-goroutines int Maximum number of goroutines (default 1000)")
 	fmt.Println("  -version            Show version information")
+	fmt.Println("  -update             Update to the latest version")
 	fmt.Println("\nExamples:")
 	fmt.Println("  solvm script.lua")
 	fmt.Println("  solvm -timeout 10s -debug script.lua")
@@ -83,6 +178,7 @@ func main() {
 	memoryLimit := flag.Int("memory-limit", 1024, "Memory limit in MB")
 	maxGoroutines := flag.Int("max-goroutines", 1000, "Maximum number of goroutines")
 	showVersion := flag.Bool("version", false, "Show version information")
+	update := flag.Bool("update", false, "Update to the latest version")
 
 	flag.Usage = printUsage
 	flag.Parse()
@@ -91,6 +187,16 @@ func main() {
 		fmt.Printf("%s v%s\n", COPYRIGHT, VERSION)
 		return
 	}
+
+	if *update {
+		if err := updateSolVM(); err != nil {
+			fmt.Printf("Error updating SolVM: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	checkForUpdates()
 
 	config := vm.Config{
 		Timeout:       *timeout,
