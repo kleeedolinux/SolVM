@@ -12,7 +12,7 @@ import (
 	"solvm/vm"
 )
 
-const VERSION = "1.1.0"
+const VERSION = "1.2.0"
 const COPYRIGHT = "SolVM (c) 2025"
 
 func printUsage() {
