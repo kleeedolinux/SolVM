@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -11,8 +12,11 @@ import (
 	"solvm/vm"
 )
 
+const VERSION = "1.1.0"
+const COPYRIGHT = "SolVM (c) 2025"
+
 func printUsage() {
-	fmt.Println("SolVM - A Lua Virtual Machine with Enhanced Features")
+	fmt.Printf("%s - A Lua Virtual Machine with Enhanced Features\n", COPYRIGHT)
 	fmt.Println("\nUsage: solvm [options] <lua-file>")
 	fmt.Println("\nOptions:")
 	fmt.Println("  -timeout duration    Execution timeout (default 5s)")
@@ -25,6 +29,51 @@ func printUsage() {
 	fmt.Println("  solvm script.lua")
 	fmt.Println("  solvm -timeout 10s -debug script.lua")
 	fmt.Println("  solvm -memory-limit 2048 server.lua")
+	fmt.Println("\nRunning without arguments starts the SolVM console")
+}
+
+func runConsole(config vm.Config) {
+	fmt.Printf("%s v%s\n", COPYRIGHT, VERSION)
+	fmt.Println("Type 'exit' or 'quit' to exit")
+	fmt.Println("Type 'help' for available commands")
+	fmt.Println()
+
+	vm := vm.NewSolVM(config)
+	defer vm.Close()
+	vm.RegisterCustomFunctions()
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("solvm> ")
+		if !scanner.Scan() {
+			break
+		}
+
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		switch line {
+		case "exit", "quit":
+			return
+		case "help":
+			fmt.Println("Available commands:")
+			fmt.Println("  exit, quit  - Exit the console")
+			fmt.Println("  help       - Show this help message")
+			fmt.Println("  clear      - Clear the screen")
+			fmt.Println("  version    - Show version information")
+			fmt.Println("  Any other input is treated as Lua code")
+		case "clear":
+			fmt.Print("\033[H\033[2J")
+		case "version":
+			fmt.Printf("%s v%s\n", COPYRIGHT, VERSION)
+		default:
+			if err := vm.LoadString(line); err != nil {
+				fmt.Printf("Error: %v\n", err)
+			}
+		}
+	}
 }
 
 func main() {
@@ -39,13 +88,22 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Println("SolVM version 1.1.0")
+		fmt.Printf("%s v%s\n", COPYRIGHT, VERSION)
 		return
 	}
 
+	config := vm.Config{
+		Timeout:       *timeout,
+		Debug:         *debug,
+		Trace:         *trace,
+		MemoryLimit:   int64(*memoryLimit) * 1024 * 1024,
+		MaxGoroutines: *maxGoroutines,
+	}
+
 	if flag.NArg() == 0 {
-		printUsage()
-		os.Exit(1)
+		config.WorkingDir, _ = os.Getwd()
+		runConsole(config)
+		return
 	}
 
 	file := flag.Arg(0)
@@ -74,14 +132,7 @@ func main() {
 		fmt.Println("Server mode detected: timeout disabled")
 	}
 
-	config := vm.Config{
-		Timeout:       *timeout,
-		Debug:         *debug,
-		Trace:         *trace,
-		MemoryLimit:   int64(*memoryLimit) * 1024 * 1024,
-		MaxGoroutines: *maxGoroutines,
-		WorkingDir:    filepath.Dir(absPath),
-	}
+	config.WorkingDir = filepath.Dir(absPath)
 
 	vm := vm.NewSolVM(config)
 	defer vm.Close()
