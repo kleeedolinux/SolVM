@@ -57,33 +57,9 @@ solvm main.lua
 ## Installation
 If you want a automatic installer use SolVM Installer [here](https://github.com/kleeedolinux/SolVM-installer/releases/tag/v1.0.0)
 
-
-[Release](https://github.com/kleeedolinux/SolVM/releases)
-```bash
-git clone https://github.com/kleeedolinux/SolVM
-cd SolVM
-```
-
-If Linux
-```bash
-go build -o solvm main.go
-```
-
-If Linux
-```bash
-chmod +x build.sh
-./build.sh
-```
-
-If Windows
-```bash
-./build.ps1
-```
-
 ## Usage
 ```bash
-./solvm main.lua
-./solvm.exe main.lua
+solvm main.lua
 ```
 
 ## Documentation
