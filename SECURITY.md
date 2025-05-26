@@ -8,10 +8,7 @@ We are committed to providing security updates for the following versions of Sol
 
 | Version      | Supported          | Notes                                                                 |
 | :----------- | :----------------- | :-------------------------------------------------------------------- |
-| `1.1.x`      | :white_check_mark: | **Current stable release line.** Actively receiving security updates. |
-| `1.0.x`      | :white_check_mark: | Previous stable release line. Receiving critical security updates.    |
-| `< 1.0.0`    | :x:                | Older versions are no longer supported. Please upgrade.               |
-| Beta/RC builds | :warning:          | Supported on a best-effort basis for critical issues until the next stable release. Not recommended for production. |
+| `1.3.x`      | :white_check_mark: | **Current stable release line.** Actively receiving security updates. |
 
 We encourage all users to run the latest stable version within the `1.1.x` series to ensure they have the most up-to-date features and security patches. Critical security fixes may be backported to the `1.0.x` series for a limited time after a new `1.1.x` release.
 
