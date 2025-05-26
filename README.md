@@ -55,6 +55,9 @@ solvm main.lua
 
 
 ## Installation
+If you want a automatic installer use SolVM Installer [here](https://github.com/kleeedolinux/SolVM-installer/releases/tag/v1.0.0)
+
+
 [Release](https://github.com/kleeedolinux/SolVM/releases)
 ```bash
 git clone https://github.com/kleeedolinux/SolVM
