@@ -46,6 +46,7 @@ solvm main.lua
 - Network utilities  
 - Import system  
 - Monitoring and resource checking  
+- Template engine  
 
 
 <p align="center">

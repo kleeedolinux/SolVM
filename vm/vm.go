@@ -109,6 +109,7 @@ func (vm *SolVM) registerBuiltinModules() {
 	modules.RegisterFTModule(vm.state)
 	modules.RegisterINIModule(vm.state)
 	modules.RegisterTARModule(vm.state)
+	modules.RegisterTemplateModule(vm.state)
 }
 
 func (vm *SolVM) LoadString(code string) error {
