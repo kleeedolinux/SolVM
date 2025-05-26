@@ -5,7 +5,7 @@ SolVM is a Lua Runtime written in Go.
   <p><em>Simple. Elegant. Powerful.</em></p>
 </div>
 <p align="center">
-  <strong>Love KleeStore? Give it a star on GitHub! ⭐ Your support helps!</strong><br/>
+  <strong>Love SolVM? Give it a star on GitHub! ⭐ Your support helps!</strong><br/>
   <a href="https://github.com/kleeedolinux/solvm">
     <img src="https://img.shields.io/github/stars/kleeedolinux/solvm?style=social" alt="GitHub stars">
   </a>
