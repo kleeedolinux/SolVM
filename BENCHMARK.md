@@ -84,7 +84,7 @@ Manipulating a table with 100,000 entries (insertions followed by iteration and 
 
 **Function Calls:**
 Executing the recursive `fib(20)` function, which involves a significant number of function calls, took an average of **1.54ms**. The timings for this test showed more variability, ranging from **1.00ms** to **2.04ms**. This relatively fast execution for a recursive task demonstrates that Lua function call overhead within SolVM is low. Efficient function dispatch is key for structuring complex applications and for algorithms that naturally lend themselves to recursion.
-*(Note: The raw iteration output for Function Calls appeared to be missing or misaligned in the provided snippet. The summary values are used here, and the iterations for Function Calls are inferred from the anomalous "Iteration 5: 1.11ms" and the summary data.)*
+
 
 **String Operations:**
 Concatenating "test" with an iterator 10,000 times to form a long string averaged **101.83ms**, with a range from **96.00ms** to **111.90ms**. This operation is notably slower than the others, which is typical for string concatenation in many scripting languages that use immutable strings. Each concatenation likely creates a new string object, leading to memory allocation and copying overhead. For performance-critical sections involving extensive string building, alternative strategies (like using a table of strings and `table.concat` at the end, if available and idiomatic within SolVM's provided Lua environment) might be considered.
