@@ -59,6 +59,46 @@ func NewImportModule(vm *SolVM) *ImportModule {
 
 func (im *ImportModule) Register() {
 	im.vm.RegisterFunction("import", im.importModule)
+	im.vm.RegisterFunction("metadata", im.metadata)
+}
+
+func (im *ImportModule) metadata(L *lua.LState) int {
+	metadata := L.CheckTable(1)
+
+	pkg := L.GetGlobal("package").(*lua.LTable)
+
+	loaded := pkg.RawGetString("loaded")
+	if loaded.Type() != lua.LTTable {
+		loaded = L.NewTable()
+		pkg.RawSetString("loaded", loaded)
+	}
+
+	var debug lua.Debug
+	_, err := L.GetInfo("nSl", &debug, lua.LNil)
+	if err != nil {
+		L.RaiseError("metadata() must be called from a module")
+		return 0
+	}
+
+	if debug.Source == "" {
+		L.RaiseError("metadata() must be called from a module")
+		return 0
+	}
+
+	moduleName := filepath.Base(debug.Source)
+	moduleName = strings.TrimSuffix(moduleName, ".lua")
+
+	moduleTable := loaded.(*lua.LTable).RawGetString(moduleName)
+	if moduleTable.Type() != lua.LTTable {
+		moduleTable = L.NewTable()
+		loaded.(*lua.LTable).RawSetString(moduleName, moduleTable)
+	}
+
+	metadata.ForEach(func(key, value lua.LValue) {
+		moduleTable.(*lua.LTable).RawSet(key, value)
+	})
+
+	return 0
 }
 
 func (im *ImportModule) importModule(L *lua.LState) int {

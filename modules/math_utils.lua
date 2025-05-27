@@ -1,5 +1,14 @@
 local math_utils = {}
 
+metadata({
+    name = "math_utils",
+    version = "1.0.0",
+    author = "SolVM Team",
+    description = "Basic math operations module",
+    repository = "https://github.com/yourusername/solvm",
+    license = "MIT"
+})
+
 function math_utils.add(a, b)
     return a + b
 end
