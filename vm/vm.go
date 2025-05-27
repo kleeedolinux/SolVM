@@ -111,6 +111,8 @@ func (vm *SolVM) registerBuiltinModules() {
 	modules.RegisterTARModule(vm.state)
 	modules.RegisterTemplateModule(vm.state)
 	modules.RegisterTableXModule(vm.state)
+	modules.RegisterUtilsModule(vm.state)
+	modules.RegisterTypesModule(vm.state)
 
 	vm.concMod.Register()
 }
