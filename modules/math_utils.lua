@@ -5,7 +5,7 @@ metadata({
     version = "1.0.0",
     author = "SolVM Team",
     description = "Basic math operations module",
-    repository = "https://github.com/yourusername/solvm",
+    repository = "https://github.com/kleeedolinux/SolVM",
     license = "MIT"
 })
 
