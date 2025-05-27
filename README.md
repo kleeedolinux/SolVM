@@ -63,8 +63,8 @@ solvm main.lua
 ```
 
 ## Documentation
-[Here](https://solvm.vercel.app/docs/solvm.json)
-
+[Documentation](DOC/DOC.md) is here 
+[How it works](DOC/HOW.md) is here
 ## Benchmark
 [BENCHMARK.md](BENCHMARK.md)
 
