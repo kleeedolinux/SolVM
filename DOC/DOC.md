@@ -1,4 +1,3 @@
-Okay, I've reviewed the style of the original document and will integrate the new features while maintaining that style. Here's the updated SolVM guide:
 
 # SolVM: A Comprehensive Guide
 
