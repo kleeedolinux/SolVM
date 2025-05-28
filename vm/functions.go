@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -126,9 +127,8 @@ func jsonEncode(L *lua.LState) int {
 	goValue := convertToGoValue(value)
 	data, err := json.Marshal(goValue)
 	if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
+		L.RaiseError(fmt.Sprintf("json_encode error: %v", err))
+		return 0
 	}
 
 	L.Push(lua.LString(string(data)))
@@ -137,12 +137,15 @@ func jsonEncode(L *lua.LState) int {
 
 func jsonDecode(L *lua.LState) int {
 	str := L.CheckString(1)
+	if str == "" {
+		L.RaiseError("json_decode error: empty string")
+		return 0
+	}
 
 	var result interface{}
 	if err := json.Unmarshal([]byte(str), &result); err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
+		L.RaiseError(fmt.Sprintf("json_decode error: %v", err))
+		return 0
 	}
 
 	L.Push(convertToLuaValue(L, result))
@@ -185,7 +188,9 @@ func convertToGoValue(value lua.LValue) interface{} {
 			arr := make([]interface{}, maxIndex)
 			table.ForEach(func(key, value lua.LValue) {
 				idx := int(key.(lua.LNumber)) - 1
-				arr[idx] = convertToGoValue(value)
+				if idx >= 0 && idx < len(arr) {
+					arr[idx] = convertToGoValue(value)
+				}
 			})
 			return arr
 		}
@@ -210,6 +215,14 @@ func convertToLuaValue(L *lua.LState, value interface{}) lua.LValue {
 		return lua.LBool(v)
 	case float64:
 		return lua.LNumber(v)
+	case float32:
+		return lua.LNumber(v)
+	case int:
+		return lua.LNumber(v)
+	case int64:
+		return lua.LNumber(v)
+	case int32:
+		return lua.LNumber(v)
 	case string:
 		return lua.LString(v)
 	case []interface{}:
@@ -224,6 +237,11 @@ func convertToLuaValue(L *lua.LState, value interface{}) lua.LValue {
 			tbl.RawSetString(k, convertToLuaValue(L, v))
 		}
 		return tbl
+	case json.Number:
+		if f, err := v.Float64(); err == nil {
+			return lua.LNumber(f)
+		}
+		return lua.LString(v.String())
 	default:
 		return lua.LNil
 	}
