@@ -17,7 +17,7 @@ import (
 	"solvm/vm"
 )
 
-const VERSION = "1.3.1"
+const VERSION = "1.4.0"
 const COPYRIGHT = "SolVM (c) 2025"
 const GITHUB_API_URL = "https://api.github.com/repos/kleeedolinux/SolVM/releases/latest"
 
