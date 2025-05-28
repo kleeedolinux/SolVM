@@ -2,10 +2,91 @@ package vm
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	lua "github.com/yuin/gopher-lua"
 )
+
+type FunctionTrie struct {
+	children map[rune]*FunctionTrie
+	function lua.LGFunction
+	id       int
+}
+
+type FunctionCache struct {
+	mu          sync.RWMutex
+	trie        *FunctionTrie
+	jumpTable   map[int]lua.LGFunction
+	nextID      int
+	inlineCache map[string]*lua.LFunction
+}
+
+func NewFunctionCache() *FunctionCache {
+	return &FunctionCache{
+		trie: &FunctionTrie{
+			children: make(map[rune]*FunctionTrie),
+		},
+		jumpTable:   make(map[int]lua.LGFunction),
+		inlineCache: make(map[string]*lua.LFunction),
+	}
+}
+
+func (fc *FunctionCache) Register(name string, fn lua.LGFunction) int {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+
+	current := fc.trie
+	for _, char := range name {
+		if _, exists := current.children[char]; !exists {
+			current.children[char] = &FunctionTrie{
+				children: make(map[rune]*FunctionTrie),
+			}
+		}
+		current = current.children[char]
+	}
+
+	if current.function == nil {
+		current.id = fc.nextID
+		fc.jumpTable[fc.nextID] = fn
+		fc.nextID++
+	}
+	current.function = fn
+	return current.id
+}
+
+func (fc *FunctionCache) Lookup(name string) (lua.LGFunction, int) {
+	fc.mu.RLock()
+	defer fc.mu.RUnlock()
+
+	current := fc.trie
+	for _, char := range name {
+		if next, exists := current.children[char]; exists {
+			current = next
+		} else {
+			return nil, -1
+		}
+	}
+	return current.function, current.id
+}
+
+func (fc *FunctionCache) GetByID(id int) lua.LGFunction {
+	fc.mu.RLock()
+	defer fc.mu.RUnlock()
+	return fc.jumpTable[id]
+}
+
+func (fc *FunctionCache) CacheFunction(name string, fn *lua.LFunction) {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	fc.inlineCache[name] = fn
+}
+
+func (fc *FunctionCache) GetCachedFunction(name string) *lua.LFunction {
+	fc.mu.RLock()
+	defer fc.mu.RUnlock()
+	return fc.inlineCache[name]
+}
 
 func (vm *SolVM) RegisterCustomFunctions() {
 	vm.RegisterFunction("json_encode", jsonEncode)
@@ -20,6 +101,23 @@ func (vm *SolVM) RegisterCustomFunctions() {
 	vm.schedMod.Register()
 	vm.netMod.Register()
 	vm.debugMod.Register()
+}
+
+func (vm *SolVM) RegisterFunction(name string, fn lua.LGFunction) {
+	vm.mu.Lock()
+	defer vm.mu.Unlock()
+
+	id := vm.functionCache.Register(name, fn)
+	vm.state.SetGlobal(name, vm.state.NewFunction(func(L *lua.LState) int {
+		if cached := vm.functionCache.GetCachedFunction(name); cached != nil {
+			L.Push(cached)
+			return 1
+		}
+		if cachedFn := vm.functionCache.GetByID(id); cachedFn != nil {
+			return cachedFn(L)
+		}
+		return fn(L)
+	}))
 }
 
 func jsonEncode(L *lua.LState) int {

@@ -25,6 +25,20 @@ type Config struct {
 	WorkingDir    string
 }
 
+type ScopeNode struct {
+	Parent    *ScopeNode
+	Children  []*ScopeNode
+	Variables map[string]bool
+	Functions map[string]*lua.LFunction
+	Level     int
+}
+
+type CallNode struct {
+	Function *lua.LFunction
+	Calls    []*CallNode
+	Visited  bool
+}
+
 type SolVM struct {
 	state         *lua.LState
 	mu            sync.RWMutex
@@ -49,6 +63,10 @@ type SolVM struct {
 	modules       map[string]Module
 	moduleMu      sync.RWMutex
 	startMem      runtime.MemStats
+	scopeTree     *ScopeNode
+	callGraph     *CallNode
+	scopeMu       sync.RWMutex
+	functionCache *FunctionCache
 }
 
 func NewSolVM(config Config) *SolVM {
@@ -74,6 +92,12 @@ func NewSolVM(config Config) *SolVM {
 		maxGoroutines: config.MaxGoroutines,
 		workingDir:    config.WorkingDir,
 		modules:       make(map[string]Module),
+		scopeTree: &ScopeNode{
+			Variables: make(map[string]bool),
+			Functions: make(map[string]*lua.LFunction),
+			Level:     0,
+		},
+		functionCache: NewFunctionCache(),
 	}
 
 	runtime.ReadMemStats(&vm.startMem)
@@ -117,6 +141,96 @@ func (vm *SolVM) registerBuiltinModules() {
 	vm.concMod.Register()
 }
 
+func (vm *SolVM) analyzeScope(code string) error {
+	vm.scopeMu.Lock()
+	defer vm.scopeMu.Unlock()
+
+	L := lua.NewState()
+	defer L.Close()
+
+	fn, err := L.LoadString(code)
+	if err != nil {
+		return err
+	}
+
+	vm.analyzeFunction(fn, vm.scopeTree)
+	return nil
+}
+
+func (vm *SolVM) analyzeFunction(fn *lua.LFunction, parent *ScopeNode) {
+	node := &ScopeNode{
+		Parent:    parent,
+		Children:  make([]*ScopeNode, 0),
+		Variables: make(map[string]bool),
+		Functions: make(map[string]*lua.LFunction),
+		Level:     parent.Level + 1,
+	}
+	parent.Children = append(parent.Children, node)
+
+	proto := fn.Proto
+	for i := 0; i < int(proto.NumUpvalues); i++ {
+		name := proto.DbgUpvalues[i]
+		node.Variables[name] = true
+	}
+
+	for i := 0; i < len(proto.DbgLocals); i++ {
+		name := proto.DbgLocals[i].Name
+		node.Variables[name] = true
+	}
+
+	for i := 0; i < len(proto.Constants); i++ {
+		if proto.Constants[i].Type() == lua.LTFunction {
+			vm.analyzeFunction(proto.Constants[i].(*lua.LFunction), node)
+		}
+	}
+}
+
+func (vm *SolVM) buildCallGraph() {
+	vm.scopeMu.Lock()
+	defer vm.scopeMu.Unlock()
+
+	vm.callGraph = &CallNode{
+		Function: nil,
+		Calls:    make([]*CallNode, 0),
+	}
+
+	vm.analyzeCallGraph(vm.scopeTree)
+}
+
+func (vm *SolVM) analyzeCallGraph(node *ScopeNode) {
+	for _, fn := range node.Functions {
+		callNode := &CallNode{
+			Function: fn,
+			Calls:    make([]*CallNode, 0),
+		}
+		vm.callGraph.Calls = append(vm.callGraph.Calls, callNode)
+		vm.findFunctionCalls(fn, callNode)
+	}
+
+	for _, child := range node.Children {
+		vm.analyzeCallGraph(child)
+	}
+}
+
+func (vm *SolVM) findFunctionCalls(fn *lua.LFunction, node *CallNode) {
+	if node.Visited {
+		return
+	}
+	node.Visited = true
+
+	proto := fn.Proto
+	for i := 0; i < len(proto.Constants); i++ {
+		if proto.Constants[i].Type() == lua.LTFunction {
+			callNode := &CallNode{
+				Function: proto.Constants[i].(*lua.LFunction),
+				Calls:    make([]*CallNode, 0),
+			}
+			node.Calls = append(node.Calls, callNode)
+			vm.findFunctionCalls(callNode.Function, callNode)
+		}
+	}
+}
+
 func (vm *SolVM) LoadString(code string) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
@@ -126,6 +240,12 @@ func (vm *SolVM) LoadString(code string) error {
 			return err
 		}
 	}
+
+	if err := vm.analyzeScope(code); err != nil {
+		return err
+	}
+
+	vm.buildCallGraph()
 
 	err := vm.state.DoString(code)
 	if err != nil {
@@ -169,17 +289,10 @@ func (vm *SolVM) ExecuteAsync(code string) error {
 	}
 }
 
-func (vm *SolVM) RegisterFunction(name string, fn lua.LGFunction) {
-	vm.mu.Lock()
-	defer vm.mu.Unlock()
-	vm.state.SetGlobal(name, vm.state.NewFunction(fn))
-}
-
 func (vm *SolVM) RegisterModule(name string, module Module) {
 	vm.moduleMu.Lock()
 	defer vm.moduleMu.Unlock()
 	vm.modules[name] = module
-	module.Register()
 }
 
 func (vm *SolVM) GetModule(name string) (Module, bool) {
